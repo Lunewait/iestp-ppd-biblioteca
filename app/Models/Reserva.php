@@ -40,4 +40,28 @@ class Reserva extends Model
     {
         return $this->belongsTo(Material::class, 'material_id');
     }
+
+    /**
+     * Check if the reservation has expired (48 hours after approval)
+     */
+    public function isExpired()
+    {
+        if ($this->status === 'aprobada' && $this->fecha_expiracion) {
+            return now()->greaterThan($this->fecha_expiracion);
+        }
+        return false;
+    }
+
+    /**
+     * Mark reservation as expired and return material to stock
+     */
+    public function markAsExpired()
+    {
+        $this->update(['status' => 'expirada']);
+
+        // Return material to stock
+        if ($this->material && $this->material->materialFisico) {
+            $this->material->materialFisico->increment('available');
+        }
+    }
 }

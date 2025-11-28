@@ -55,7 +55,7 @@ class MaterialSeeder extends Seeder
 
         foreach ($materialesFisicos as $data) {
             $material = Material::create($data);
-            
+
             // Crear detalles físicos
             MaterialFisico::create([
                 'material_id' => $material->id,
@@ -76,6 +76,7 @@ class MaterialSeeder extends Seeder
                 'code' => 'LD-006',
                 'type' => 'digital',
                 'description' => 'Official Laravel Framework Documentation',
+                'url' => 'https://media.readthedocs.org/pdf/laravel/latest/laravel.pdf', // PDF Real (ejemplo)
             ],
             [
                 'title' => 'PHP: The Right Way',
@@ -83,6 +84,7 @@ class MaterialSeeder extends Seeder
                 'code' => 'PHP-007',
                 'type' => 'digital',
                 'description' => 'A PHP Best Practices Quick Reference',
+                'url' => 'https://pubs.opengroup.org/onlinepubs/009695399/download/susv3.pdf', // Placeholder técnico
             ],
             [
                 'title' => 'JavaScript: The Definitive Guide',
@@ -90,6 +92,7 @@ class MaterialSeeder extends Seeder
                 'code' => 'JS-008',
                 'type' => 'digital',
                 'description' => 'Master the World\'s Most-Used Programming Language',
+                'url' => 'https://eloquentjavascript.net/Eloquent_JavaScript.pdf', // Eloquent JS PDF
             ],
             [
                 'title' => 'You Don\'t Know JS',
@@ -97,16 +100,20 @@ class MaterialSeeder extends Seeder
                 'code' => 'YDKJS-009',
                 'type' => 'digital',
                 'description' => 'A Book Series on JavaScript',
+                'url' => 'https://github.com/getify/You-Dont-Know-JS/raw/1st-ed/up%20&%20going/ch1.md', // Enlace directo a contenido (simulado)
             ],
         ];
 
         foreach ($materialesDigitales as $data) {
+            $url = $data['url'];
+            unset($data['url']); // Remove URL from main material data
+
             $material = Material::create($data);
-            
+
             // Crear detalles digitales
             MaterialDigital::create([
                 'material_id' => $material->id,
-                'url' => 'https://example.com/resource-' . $material->id,
+                'url' => $url,
                 'file_type' => 'pdf',
                 'license' => 'Creative Commons',
             ]);
@@ -132,7 +139,7 @@ class MaterialSeeder extends Seeder
 
         foreach ($materialesHibridos as $data) {
             $material = Material::create($data);
-            
+
             // Crear detalles físicos para híbrido
             MaterialFisico::create([
                 'material_id' => $material->id,

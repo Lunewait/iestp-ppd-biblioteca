@@ -158,5 +158,7 @@
 
     <!-- Componentes de soporte -->
     <livewire:notification-toast />
+    @role('Admin')
     <livewire:export-data />
+    @endrole
 @endsection

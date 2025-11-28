@@ -76,15 +76,15 @@
                         <div class="flex justify-between items-start mb-4">
                             <span
                                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                        {{ $doc->tipo === 'tesis' ? 'bg-purple-100 text-purple-800' : ($doc->tipo === 'investigacion' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800') }}">
+                                                {{ $doc->tipo === 'tesis' ? 'bg-purple-100 text-purple-800' : ($doc->tipo === 'investigacion' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800') }}">
                                 {{ ucfirst(str_replace('_', ' ', $doc->tipo)) }}
                             </span>
 
-                            @if($doc->status !== 'publicado')
+                            @if($doc->estado !== 'publicado')
                                 <span
                                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                                {{ $doc->status === 'pendiente' ? 'bg-amber-100 text-amber-800' : ($doc->status === 'rechazado' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800') }}">
-                                    {{ ucfirst($doc->status) }}
+                                                            {{ $doc->estado === 'pendiente' ? 'bg-amber-100 text-amber-800' : ($doc->estado === 'rechazado' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800') }}">
+                                    {{ ucfirst($doc->estado) }}
                                 </span>
                             @endif
                         </div>
@@ -117,7 +117,7 @@
 
                             <div class="flex gap-2">
                                 @can('approve_document')
-                                    @if($doc->status === 'pendiente' || $doc->status === 'aprobado')
+                                    @if($doc->estado === 'pendiente' || $doc->estado === 'aprobado')
                                         <a href="{{ route('repository.approve', $doc) }}"
                                             class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition"
                                             title="Gestionar Aprobación">

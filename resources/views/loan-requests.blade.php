@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Solicitar Préstamo')
+
 @section('content')
-    <livewire:request-loan />
+    <livewire:loan-requests />
 @endsection

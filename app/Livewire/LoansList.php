@@ -47,14 +47,14 @@ class LoansList extends Component
         }
 
         if ($loan->isOverdue()) {
-            $daysLate = now()->diffInDays($loan->fecha_devolucion_esperada);
+            $daysLate = abs(now()->diffInDays($loan->fecha_devolucion_esperada));
             $fineAmount = $daysLate * 1.50;
 
             \App\Models\Multa::create([
                 'prestamo_id' => $loan->id,
                 'user_id' => $loan->user_id,
                 'monto' => $fineAmount,
-                'razon' => "Devolución tardía ({$daysLate} días)",
+                'razon' => "Retraso en devolución de material ({$daysLate} días)",
                 'status' => 'pendiente',
                 'registrado_por' => auth()->id(),
             ]);

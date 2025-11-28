@@ -7,6 +7,7 @@ use App\Models\RepositorioDocumento;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Storage;
 
 class RepositoryController extends Controller
 {
@@ -18,8 +19,10 @@ class RepositoryController extends Controller
     {
         $query = RepositorioDocumento::query();
 
-        // All users can see all documents in the repository
-        // No restrictions based on status
+        // Students can only see published documents
+        if (auth()->user()->hasRole('Estudiante')) {
+            $query->where('estado', 'publicado');
+        }
 
         // Filter by type
         if ($request->tipo) {
@@ -29,8 +32,10 @@ class RepositoryController extends Controller
         // Search
         if ($request->search) {
             $search = $request->search;
-            $query->where('titulo', 'like', "%{$search}%")
-                ->orWhere('autor', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('titulo', 'like', "%{$search}%")
+                    ->orWhere('autor', 'like', "%{$search}%");
+            });
         }
 
         $documentos = $query->with('usuario')
@@ -189,5 +194,27 @@ class RepositoryController extends Controller
         $documento->increment('descargas');
 
         return response()->download(storage_path('app/private/' . $documento->file_path));
+    }
+
+    /**
+     * Remove the specified document from storage.
+     */
+    public function destroy(RepositorioDocumento $documento)
+    {
+        // Only Admin can delete documents
+        if (!auth()->user()->hasRole('Admin')) {
+            abort(403, 'Solo el administrador puede eliminar documentos');
+        }
+
+        // Delete file from storage
+        if (Storage::disk('private')->exists($documento->file_path)) {
+            Storage::disk('private')->delete($documento->file_path);
+        }
+
+        // Delete database record
+        $documento->delete();
+
+        return redirect()->route('repository.index')
+            ->with('success', 'Documento eliminado correctamente');
     }
 }

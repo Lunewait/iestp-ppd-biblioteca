@@ -64,8 +64,8 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <p class="text-sm font-semibold text-gray-900">{{ $loan->material->titulo }}</p>
-                                        <p class="text-xs text-gray-500">por {{ $loan->material->autor }}</p>
+                                        <p class="text-sm font-semibold text-gray-900">{{ $loan->material->title }}</p>
+                                        <p class="text-xs text-gray-500">por {{ $loan->material->author }}</p>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-700">
                                         {{ $loan->created_at->format('d/m/Y H:i') }}
@@ -159,7 +159,7 @@
                             ❌ Rechazar Préstamo
                         @endif
                     </h2>
-                    <p class="text-gray-600 mt-1">{{ $loanToApprove->material->titulo }}</p>
+                    <p class="text-gray-600 mt-1">{{ $loanToApprove->material->title }}</p>
                 </div>
 
                 <!-- Info del Préstamo -->
@@ -170,7 +170,7 @@
                     </div>
                     <div class="text-sm">
                         <span class="font-semibold text-gray-700">Material:</span>
-                        <span class="text-gray-900">{{ $loanToApprove->material->titulo }}</span>
+                        <span class="text-gray-900">{{ $loanToApprove->material->title }}</span>
                     </div>
                     <div class="text-sm">
                         <span class="font-semibold text-gray-700">Razón:</span>

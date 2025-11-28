@@ -22,8 +22,8 @@ class MaterialController extends Controller
         if ($request->search) {
             $search = $request->search;
             $query->where('title', 'like', "%{$search}%")
-                  ->orWhere('author', 'like', "%{$search}%")
-                  ->orWhere('code', 'like', "%{$search}%");
+                ->orWhere('author', 'like', "%{$search}%")
+                ->orWhere('code', 'like', "%{$search}%");
         }
 
         // Filter by type
@@ -32,7 +32,7 @@ class MaterialController extends Controller
         }
 
         $materials = $query->with(['materialFisico', 'materialDigital'])
-                          ->paginate(15);
+            ->paginate(15);
 
         return view('materials.index', compact('materials'));
     }
@@ -61,6 +61,9 @@ class MaterialController extends Controller
             'type' => 'required|in:fisico,digital,hibrido',
             'code' => 'required|unique:materials,code',
             'keywords' => 'nullable|string',
+            // Validaciones condicionales
+            'url' => 'required_if:type,digital,hibrido|nullable|url',
+            'stock' => 'required_if:type,fisico,hibrido|nullable|integer|min:0',
         ]);
 
         $material = Material::create($validated);
@@ -88,7 +91,7 @@ class MaterialController extends Controller
         }
 
         return redirect()->route('materials.show', $material)
-                       ->with('success', 'Material creado exitosamente');
+            ->with('success', 'Material creado exitosamente');
     }
 
     /**
@@ -128,7 +131,7 @@ class MaterialController extends Controller
         $material->update($validated);
 
         return redirect()->route('materials.show', $material)
-                       ->with('success', 'Material actualizado exitosamente');
+            ->with('success', 'Material actualizado exitosamente');
     }
 
     /**
@@ -141,6 +144,6 @@ class MaterialController extends Controller
         $material->delete();
 
         return redirect()->route('materials.index')
-                       ->with('success', 'Material eliminado exitosamente');
+            ->with('success', 'Material eliminado exitosamente');
     }
 }

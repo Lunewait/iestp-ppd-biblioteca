@@ -36,17 +36,20 @@ class FineController extends Controller
 
         // Search by reason or notes
         if ($request->search) {
-            $query->where('razon', 'like', "%{$request->search}%")
-                  ->orWhereHas('usuario', function ($q) {
-                      $q->where('name', 'like', "%{$request->search}%");
-                  });
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('razon', 'like', "%{$search}%")
+                    ->orWhereHas('usuario', function ($subQ) use ($search) {
+                        $subQ->where('name', 'like', "%{$search}%");
+                    });
+            });
         }
 
         $fines = $query->with(['usuario', 'prestamo'])
-                      ->orderBy('created_at', 'desc')
-                      ->paginate(15);
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
 
-        $users = User::all();
+        $users = User::role('Estudiante')->get();
         $totalPending = Multa::where('status', 'pendiente')->sum('monto');
 
         return view('fines.index', compact('fines', 'users', 'totalPending'));
@@ -59,7 +62,7 @@ class FineController extends Controller
     {
         $this->authorize('create_fine');
 
-        $users = User::all();
+        $users = User::role('Estudiante')->get();
 
         return view('fines.create', compact('users'));
     }
@@ -84,7 +87,7 @@ class FineController extends Controller
         Multa::create($validated);
 
         return redirect()->route('fines.index')
-                       ->with('success', 'Multa creada exitosamente');
+            ->with('success', 'Multa creada exitosamente');
     }
 
     /**
@@ -106,7 +109,7 @@ class FineController extends Controller
     {
         $this->authorize('manage_fines');
 
-        $users = User::all();
+        $users = User::role('Estudiante')->get();
 
         return view('fines.edit', compact('fine', 'users'));
     }
@@ -121,13 +124,12 @@ class FineController extends Controller
         $validated = $request->validate([
             'monto' => 'required|numeric|min:0.01',
             'razon' => 'required|string|max:255',
-            'status' => 'required|in:pendiente,pagada,condonada',
         ]);
 
         $fine->update($validated);
 
         return redirect()->route('fines.show', $fine)
-                       ->with('success', 'Multa actualizada exitosamente');
+            ->with('success', 'Multa actualizada exitosamente');
     }
 
     /**
@@ -143,7 +145,7 @@ class FineController extends Controller
         ]);
 
         return redirect()->route('fines.show', $fine)
-                       ->with('success', 'Multa marcada como pagada');
+            ->with('success', 'Multa marcada como pagada');
     }
 
     /**
@@ -159,7 +161,7 @@ class FineController extends Controller
         ]);
 
         return redirect()->route('fines.show', $fine)
-                       ->with('success', 'Multa condonada exitosamente');
+            ->with('success', 'Multa condonada exitosamente');
     }
 
     /**
@@ -172,6 +174,6 @@ class FineController extends Controller
         $fine->delete();
 
         return redirect()->route('fines.index')
-                       ->with('success', 'Multa eliminada exitosamente');
+            ->with('success', 'Multa eliminada exitosamente');
     }
 }

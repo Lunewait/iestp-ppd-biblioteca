@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Material;
 use App\Models\Reserva;
 use App\Models\User;
+use App\Models\Prestamo;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
@@ -18,11 +19,20 @@ class ReservationController extends Controller
     {
         $this->authorize('view_reservations');
 
+        // Expire old approved reservations (48 hours passed)
+        $expiredReservations = Reserva::where('status', 'aprobada')
+            ->where('fecha_expiracion', '<', now())
+            ->get();
+
+        foreach ($expiredReservations as $reservation) {
+            $reservation->markAsExpired();
+        }
+
         $query = Reserva::query();
 
         // Filter by status
         if ($request->status && $request->status !== 'all') {
-            $query->where('estado', $request->status);
+            $query->where('status', $request->status);
         }
 
         // Filter by user
@@ -36,8 +46,8 @@ class ReservationController extends Controller
         }
 
         $reservations = $query->with(['usuario', 'material'])
-                             ->orderBy('created_at', 'desc')
-                             ->paginate(15);
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
 
         $users = User::all();
         $materials = Material::all();
@@ -71,28 +81,38 @@ class ReservationController extends Controller
 
         $material = Material::find($validated['material_id']);
 
+        // Check if user has an active loan for this material
+        $activeLoan = \App\Models\Prestamo::where('user_id', auth()->id())
+            ->where('material_id', $material->id)
+            ->where('status', 'activo')
+            ->first();
+
+        if ($activeLoan) {
+            return back()->with('error', 'No puedes solicitar este libro porque ya tienes un préstamo activo del mismo. Debes devolverlo primero.');
+        }
+
         // Check if user already has a reservation for this material
         $existingReservation = Reserva::where('user_id', auth()->id())
-                                       ->where('material_id', $material->id)
-                                       ->where('estado', 'activa')
-                                       ->first();
+            ->where('material_id', $material->id)
+            ->whereIn('status', ['pendiente', 'aprobada'])
+            ->first();
 
         if ($existingReservation) {
-            return back()->with('error', 'Ya tienes una reserva activa para este material');
+            return back()->with('error', 'Ya tienes una solicitud activa para este material.');
         }
 
         Reserva::create([
             'user_id' => auth()->id(),
             'material_id' => $material->id,
-            'fecha_reserva_esperada' => $validated['fecha_reserva_esperada'],
-            'estado' => 'activa',
-            'posicion' => Reserva::where('material_id', $material->id)
-                                  ->where('estado', 'activa')
-                                  ->count() + 1,
+            'fecha_reserva' => now(),
+            'status' => 'pendiente',
+            'posicion_cola' => Reserva::where('material_id', $material->id)
+                ->whereIn('status', ['pendiente', 'aprobada'])
+                ->count() + 1,
         ]);
 
         return redirect()->route('reservations.index')
-                       ->with('success', 'Reserva creada exitosamente');
+            ->with('success', 'Solicitud de préstamo creada exitosamente. Recibirás una notificación cuando sea aprobada.');
     }
 
     /**
@@ -127,14 +147,13 @@ class ReservationController extends Controller
         $this->authorize('manage_reservations');
 
         $validated = $request->validate([
-            'fecha_reserva_esperada' => 'required|date|after:today',
-            'estado' => 'required|in:activa,completada,cancelada',
+            'status' => 'required|in:pendiente,aprobada,completada,cancelada,expirada',
         ]);
 
         $reservation->update($validated);
 
         return redirect()->route('reservations.show', $reservation)
-                       ->with('success', 'Reserva actualizada exitosamente');
+            ->with('success', 'Reserva actualizada exitosamente');
     }
 
     /**
@@ -144,33 +163,68 @@ class ReservationController extends Controller
     {
         $this->authorize('manage_reservations');
 
-        $reservation->update(['estado' => 'cancelada']);
+        $reservation->update(['status' => 'cancelada']);
 
         return redirect()->route('reservations.show', $reservation)
-                       ->with('success', 'Reserva cancelada exitosamente');
+            ->with('success', 'Reserva cancelada exitosamente');
     }
 
     /**
-     * Mark a reservation as completed.
+     * Approve a reservation and set 48-hour expiration.
+     */
+    public function approve(Reserva $reservation)
+    {
+        $this->authorize('manage_reservations');
+
+        // Check if material is available
+        if (!$reservation->material->materialFisico || $reservation->material->materialFisico->available < 1) {
+            return back()->with('error', 'No hay ejemplares disponibles de este material.');
+        }
+
+        // Set expiration to 48 hours from now
+        $reservation->update([
+            'status' => 'aprobada',
+            'fecha_expiracion' => now()->addHours(48),
+        ]);
+
+        // Decrement available stock (reserved for this user)
+        $reservation->material->materialFisico->decrement('available');
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'Solicitud aprobada. El estudiante tiene 48 horas para recoger el material.');
+    }
+
+    /**
+     * Mark a reservation as completed and create the loan.
      */
     public function complete(Reserva $reservation)
     {
         $this->authorize('manage_reservations');
 
-        $reservation->update(['estado' => 'completada']);
+        // Create the loan with 7-day period
+        $loan = Prestamo::create([
+            'user_id' => $reservation->user_id,
+            'material_id' => $reservation->material_id,
+            'fecha_prestamo' => now(),
+            'fecha_devolucion_esperada' => now()->addDays(7),
+            'status' => 'activo',
+        ]);
+
+        // Mark reservation as completed
+        $reservation->update(['status' => 'completada']);
 
         // Reorder remaining reservations
         $remainingReservations = Reserva::where('material_id', $reservation->material_id)
-                                         ->where('estado', 'activa')
-                                         ->orderBy('created_at')
-                                         ->get();
+            ->where('status', 'pendiente')
+            ->orderBy('created_at')
+            ->get();
 
         foreach ($remainingReservations as $index => $res) {
-            $res->update(['posicion' => $index + 1]);
+            $res->update(['posicion_cola' => $index + 1]);
         }
 
         return redirect()->route('reservations.show', $reservation)
-                       ->with('success', 'Reserva completada exitosamente');
+            ->with('success', 'Préstamo creado exitosamente. El estudiante tiene 7 días para devolver el material.');
     }
 
     /**
@@ -183,6 +237,6 @@ class ReservationController extends Controller
         $reservation->delete();
 
         return redirect()->route('reservations.index')
-                       ->with('success', 'Reserva eliminada exitosamente');
+            ->with('success', 'Reserva eliminada exitosamente');
     }
 }

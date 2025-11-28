@@ -75,7 +75,6 @@ class RolePermissionSeeder extends Seeder
             'create_reservation',
             'view_reservations',
             'view_repository',
-            'submit_document',
             'view_fines',
         ]);
 
@@ -88,9 +87,10 @@ class RolePermissionSeeder extends Seeder
             'manage_inventory',
             'view_fines',
             'create_fine',
+            'manage_fines',
+            'forgive_fine',
             'view_reservations',
             'manage_reservations',
-            'view_users',
             'view_repository',
             'approve_loan',
             'submit_document',
@@ -99,17 +99,8 @@ class RolePermissionSeeder extends Seeder
         $jefaAreaRole = Role::firstOrCreate(['name' => 'Jefe_Area']);
         $jefaAreaRole->syncPermissions([
             'view_materials',
-            'create_material',
-            'edit_material',
-            'manage_inventory',
-            'view_loans',
-            'view_fines',
-            'view_reservations',
             'view_repository',
             'approve_document',
-            'manage_repository',
-            'view_users',
-            'approve_loan',
             'submit_document',
         ]);
 
