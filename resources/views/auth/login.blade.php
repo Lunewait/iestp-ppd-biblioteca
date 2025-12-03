@@ -55,6 +55,10 @@
                 <p class="mt-2 text-gray-600">Ingresa tus credenciales para acceder a tu cuenta.</p>
             </div>
 
+            @php
+                /** @var \Illuminate\Support\ViewErrorBag $errors */
+            @endphp
+
             @if ($errors->any())
                 <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg flex items-start gap-3">
                     <i class="fas fa-exclamation-circle text-red-500 mt-0.5"></i>

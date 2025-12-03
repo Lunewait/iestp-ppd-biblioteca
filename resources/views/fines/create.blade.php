@@ -22,7 +22,9 @@
                         </div>
                     </div>
                 </div>
-
+                @php
+                    /** @var \Illuminate\Support\ViewErrorBag $errors */
+                @endphp
                 <div class="p-8">
                     @if ($errors->any())
                         <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">

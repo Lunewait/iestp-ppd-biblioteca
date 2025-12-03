@@ -8,6 +8,8 @@ use App\Models\Prestamo;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\LoansExport;
 
 class LoanController extends Controller
 {
@@ -30,7 +32,7 @@ class LoanController extends Controller
         }
 
         $loans = $query->with(['usuario', 'material', 'registradoPor'])
-                      ->paginate(15);
+            ->paginate(15);
 
         return view('loans.index', compact('loans'));
     }
@@ -70,8 +72,8 @@ class LoanController extends Controller
 
         // Check if user has unpaid fines
         $unpaidFines = Multa::where('user_id', $validated['user_id'])
-                            ->where('status', 'pendiente')
-                            ->sum('monto');
+            ->where('status', 'pendiente')
+            ->sum('monto');
 
         if ($unpaidFines > 0) {
             return back()->with('error', "Usuario tiene multas pendientes por \${$unpaidFines}");
@@ -92,7 +94,7 @@ class LoanController extends Controller
         }
 
         return redirect()->route('loans.show', $loan)
-                       ->with('success', 'Préstamo registrado exitosamente');
+            ->with('success', 'Préstamo registrado exitosamente');
     }
 
     /**
@@ -152,6 +154,16 @@ class LoanController extends Controller
         }
 
         return redirect()->route('loans.show', $loan)
-                       ->with('success', 'Préstamo devuelto exitosamente');
+            ->with('success', 'Préstamo devuelto exitosamente');
+    }
+
+    /**
+     * Export loans to Excel.
+     */
+    public function export()
+    {
+        $this->authorize('export_loans');
+
+        return Excel::download(new LoansExport, 'prestamos_' . date('Y-m-d') . '.xlsx');
     }
 }

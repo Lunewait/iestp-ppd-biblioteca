@@ -9,7 +9,9 @@
                     Aprobación Pendiente
                 </span>
             </div>
-
+            @php
+                /** @var \Illuminate\Support\ViewErrorBag $errors */
+            @endphp
             @if ($errors->any())
                 <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     <ul>
@@ -71,7 +73,7 @@
                             </div>
                             <div class="text-right">
                                 <span class="px-3 py-1 rounded-full text-white text-sm font-bold
-                                        {{ $approval->estado === 'aprobado' ? 'bg-green-500' : 'bg-red-500' }}">
+                                                {{ $approval->estado === 'aprobado' ? 'bg-green-500' : 'bg-red-500' }}">
                                     {{ ucfirst($approval->estado) }}
                                 </span>
                                 <p class="text-gray-600 text-sm mt-1">{{ $approval->created_at->format('M d, Y') }}</p>

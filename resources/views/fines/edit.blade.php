@@ -6,7 +6,9 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 bg-white border-b border-gray-200">
                     <h2 class="text-2xl font-bold text-gray-800 mb-6">Editar Multa</h2>
-
+                    @php
+                        /** @var \Illuminate\Support\ViewErrorBag $errors */
+                    @endphp
                     @if ($errors->any())
                         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                             <ul class="list-disc list-inside">

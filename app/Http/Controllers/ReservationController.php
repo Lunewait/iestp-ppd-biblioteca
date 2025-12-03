@@ -82,7 +82,7 @@ class ReservationController extends Controller
         $material = Material::find($validated['material_id']);
 
         // Check if user has an active loan for this material
-        $activeLoan = \App\Models\Prestamo::where('user_id', auth()->id())
+        $activeLoan = Prestamo::where('user_id', auth()->id())
             ->where('material_id', $material->id)
             ->where('status', 'activo')
             ->first();

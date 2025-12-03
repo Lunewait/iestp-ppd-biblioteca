@@ -30,6 +30,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('materials', [MaterialController::class, 'index'])->name('materials.index')->middleware('permission:view_materials');
 
     // Rutas específicas ANTES de rutas con parámetros
+    Route::get('materials/export', [MaterialController::class, 'export'])->name('materials.export')->middleware('permission:export_materials');
     Route::get('materials/create', [MaterialController::class, 'create'])->name('materials.create')->middleware('permission:create_material');
     Route::post('materials', [MaterialController::class, 'store'])->name('materials.store')->middleware('permission:create_material');
 
@@ -43,6 +44,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('loans', [LoanController::class, 'index'])->name('loans.index')->middleware('permission:view_loans');
 
     // Rutas específicas ANTES de rutas con parámetros
+    Route::get('loans/export', [LoanController::class, 'export'])->name('loans.export')->middleware('permission:export_loans');
     Route::get('loans/create', [LoanController::class, 'create'])->name('loans.create')->middleware('permission:create_loan');
     Route::post('loans', [LoanController::class, 'store'])->name('loans.store')->middleware('permission:create_loan');
 

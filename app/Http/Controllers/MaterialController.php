@@ -7,6 +7,8 @@ use App\Models\MaterialDigital;
 use App\Models\MaterialFisico;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\MaterialsExport;
 
 class MaterialController extends Controller
 {
@@ -145,5 +147,15 @@ class MaterialController extends Controller
 
         return redirect()->route('materials.index')
             ->with('success', 'Material eliminado exitosamente');
+    }
+
+    /**
+     * Export materials to Excel.
+     */
+    public function export()
+    {
+        $this->authorize('export_materials');
+
+        return Excel::download(new MaterialsExport, 'materiales_' . date('Y-m-d') . '.xlsx');
     }
 }

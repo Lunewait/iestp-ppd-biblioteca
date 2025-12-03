@@ -117,7 +117,9 @@
                             <span class="text-sm text-gray-500">{{ now()->format('d M, Y') }}</span>
                         </div>
                     </header>
-
+                    @php
+                        /** @var \Illuminate\Support\ViewErrorBag $errors */
+                    @endphp
                     <!-- Page Content -->
                     <main class="flex-1 p-8 overflow-y-auto">
                         @if ($errors->any())
@@ -239,7 +241,9 @@
                         </div>
                     </div>
                 </nav>
-
+                @php
+                    /** @var \Illuminate\Support\ViewErrorBag $errors */
+                @endphp
                 <!-- Main Content -->
                 <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     @if ($errors->any())
