@@ -2,49 +2,25 @@
 
 namespace App\Livewire;
 
-use App\Models\Material;
-use App\Models\Prestamo;
+use App\Exports\MaterialsExport;
+use App\Exports\LoansExport;
 use Livewire\Component;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ExportData extends Component
 {
-    public function exportMaterialsCSV()
+    public function exportMaterials()
     {
-        $this->authorize('view_material');
+        $this->authorize('export_materials');
 
-        $materials = Material::all();
-        
-        $csv = "Título,Autor,Tipo,Categoría,Código\n";
-        foreach ($materials as $material) {
-            $csv .= "\"{$material->title}\",\"{$material->author}\",\"{$material->type}\",\"{$material->category}\",\"{$material->code}\"\n";
-        }
-
-        return response()->streamDownload(
-            function () use ($csv) {
-                echo $csv;
-            },
-            'materiales-' . now()->format('Y-m-d-H-i-s') . '.csv'
-        );
+        return Excel::download(new MaterialsExport, 'materiales_' . date('Y-m-d_H-i-s') . '.xlsx');
     }
 
-    public function exportLoansCSV()
+    public function exportLoans()
     {
-        $this->authorize('view_loan');
+        $this->authorize('export_loans');
 
-        $loans = Prestamo::with(['user', 'material'])->get();
-        
-        $csv = "Material,Usuario,Fecha Préstamo,Vencimiento,Estado\n";
-        foreach ($loans as $loan) {
-            $status = $loan->is_returned ? 'Devuelto' : ($loan->due_date < now() ? 'Vencido' : 'Activo');
-            $csv .= "\"{$loan->material->title}\",\"{$loan->user->name}\",\"{$loan->date_borrowed->format('d/m/Y')}\",\"{$loan->due_date->format('d/m/Y')}\",\"{$status}\"\n";
-        }
-
-        return response()->streamDownload(
-            function () use ($csv) {
-                echo $csv;
-            },
-            'prestamos-' . now()->format('Y-m-d-H-i-s') . '.csv'
-        );
+        return Excel::download(new LoansExport, 'prestamos_' . date('Y-m-d_H-i-s') . '.xlsx');
     }
 
     public function render()
