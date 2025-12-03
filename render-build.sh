@@ -9,7 +9,7 @@ set -o errexit
 # Instalar dependencias de Composer
 echo "📦 Instalando dependencias de Composer..."
 export COMPOSER_MEMORY_LIMIT=-1
-composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts --ignore-platform-reqs
 
 # Limpiar cachés anteriores
 echo "🧹 Limpiando cachés..."
