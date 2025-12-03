@@ -12,10 +12,14 @@ return new class extends Migration {
     public function up(): void
     {
         // Modify the status column to include 'cancelado'
-        // PostgreSQL doesn't support modifying ENUMs directly in the same way as MySQL
-        // Instead we drop the check constraint and add a new one
-        DB::statement("ALTER TABLE prestamos DROP CONSTRAINT IF EXISTS prestamos_status_check");
-        DB::statement("ALTER TABLE prestamos ADD CONSTRAINT prestamos_status_check CHECK (status IN ('activo', 'devuelto', 'vencido', 'cancelado', 'pending'))");
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            // PostgreSQL syntax
+            DB::statement("ALTER TABLE prestamos DROP CONSTRAINT IF EXISTS prestamos_status_check");
+            DB::statement("ALTER TABLE prestamos ADD CONSTRAINT prestamos_status_check CHECK (status IN ('activo', 'devuelto', 'vencido', 'cancelado', 'pending'))");
+        } else {
+            // MySQL syntax
+            DB::statement("ALTER TABLE prestamos MODIFY status ENUM('activo', 'devuelto', 'vencido', 'cancelado', 'pending') DEFAULT 'activo'");
+        }
     }
 
     /**
@@ -24,7 +28,11 @@ return new class extends Migration {
     public function down(): void
     {
         // Revert to original enum values
-        DB::statement("ALTER TABLE prestamos DROP CONSTRAINT IF EXISTS prestamos_status_check");
-        DB::statement("ALTER TABLE prestamos ADD CONSTRAINT prestamos_status_check CHECK (status IN ('activo', 'devuelto', 'vencido'))");
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE prestamos DROP CONSTRAINT IF EXISTS prestamos_status_check");
+            DB::statement("ALTER TABLE prestamos ADD CONSTRAINT prestamos_status_check CHECK (status IN ('activo', 'devuelto', 'vencido'))");
+        } else {
+            DB::statement("ALTER TABLE prestamos MODIFY status ENUM('activo', 'devuelto', 'vencido') DEFAULT 'activo'");
+        }
     }
 };

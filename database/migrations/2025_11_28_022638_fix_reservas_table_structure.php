@@ -20,10 +20,15 @@ return new class extends Migration {
         });
 
         // Modify status column to include new values
-        // PostgreSQL compatible syntax
-        DB::statement("ALTER TABLE reservas DROP CONSTRAINT IF EXISTS reservas_status_check");
-        DB::statement("ALTER TABLE reservas ADD CONSTRAINT reservas_status_check CHECK (status::text IN ('pendiente', 'aprobada', 'completada', 'cancelada', 'expirada', 'activa', 'recogida'))");
-        DB::statement("ALTER TABLE reservas ALTER COLUMN status SET DEFAULT 'pendiente'");
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            // PostgreSQL compatible syntax
+            DB::statement("ALTER TABLE reservas DROP CONSTRAINT IF EXISTS reservas_status_check");
+            DB::statement("ALTER TABLE reservas ADD CONSTRAINT reservas_status_check CHECK (status::text IN ('pendiente', 'aprobada', 'completada', 'cancelada', 'expirada', 'activa', 'recogida'))");
+            DB::statement("ALTER TABLE reservas ALTER COLUMN status SET DEFAULT 'pendiente'");
+        } else {
+            // MySQL compatible syntax
+            DB::statement("ALTER TABLE reservas MODIFY COLUMN status ENUM('pendiente', 'aprobada', 'completada', 'cancelada', 'expirada', 'activa', 'recogida') DEFAULT 'pendiente'");
+        }
     }
 
     /**
@@ -35,8 +40,12 @@ return new class extends Migration {
             $table->dateTime('fecha_expiracion')->nullable(false)->change();
         });
 
-        DB::statement("ALTER TABLE reservas DROP CONSTRAINT IF EXISTS reservas_status_check");
-        DB::statement("ALTER TABLE reservas ADD CONSTRAINT reservas_status_check CHECK (status::text IN ('activa', 'cancelada', 'recogida'))");
-        DB::statement("ALTER TABLE reservas ALTER COLUMN status SET DEFAULT 'activa'");
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE reservas DROP CONSTRAINT IF EXISTS reservas_status_check");
+            DB::statement("ALTER TABLE reservas ADD CONSTRAINT reservas_status_check CHECK (status::text IN ('activa', 'cancelada', 'recogida'))");
+            DB::statement("ALTER TABLE reservas ALTER COLUMN status SET DEFAULT 'activa'");
+        } else {
+            DB::statement("ALTER TABLE reservas MODIFY COLUMN status ENUM('activa', 'cancelada', 'recogida') DEFAULT 'activa'");
+        }
     }
 };
