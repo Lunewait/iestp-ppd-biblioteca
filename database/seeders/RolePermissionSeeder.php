@@ -60,6 +60,10 @@ class RolePermissionSeeder extends Seeder
             // Admin permissions
             'access_admin',
             'manage_settings',
+
+            // Export/Download permissions
+            'export_materials',
+            'export_loans',
         ];
 
         // Create permissions
