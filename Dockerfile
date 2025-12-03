@@ -36,8 +36,9 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Instalar dependencias de PHP
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+# Instalar dependencias de PHP con límite de memoria aumentado
+ENV COMPOSER_MEMORY_LIMIT=-1
+RUN composer install --no-interaction --optimize-autoloader --no-dev --no-scripts
 
 # Instalar dependencias de Node y compilar assets
 RUN npm install
