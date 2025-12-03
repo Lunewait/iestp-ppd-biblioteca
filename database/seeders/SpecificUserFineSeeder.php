@@ -11,7 +11,7 @@ class SpecificUserFineSeeder extends Seeder
 {
     public function run()
     {
-        $email = 'estudiante@iestp.local';
+        $email = 'estudiante@iestp.edu.pe';
 
         // 1. Buscar el usuario específico
         $student = User::where('email', $email)->first();

@@ -14,14 +14,14 @@ class AdditionalUsersSeeder extends Seeder
     {
         // Crear más estudiantes
         $estudiantesData = [
-            ['name' => 'Carlos López', 'email' => 'carlos@iestp.local'],
-            ['name' => 'María García', 'email' => 'maria@iestp.local'],
-            ['name' => 'Juan Martínez', 'email' => 'juan@iestp.local'],
-            ['name' => 'Ana Rodríguez', 'email' => 'ana@iestp.local'],
-            ['name' => 'Luis Fernández', 'email' => 'luis@iestp.local'],
-            ['name' => 'Rosa Pérez', 'email' => 'rosa@iestp.local'],
-            ['name' => 'Pedro Sánchez', 'email' => 'pedro@iestp.local'],
-            ['name' => 'Elena Morales', 'email' => 'elena@iestp.local'],
+            ['name' => 'Carlos López', 'email' => 'carlos@iestp.edu.pe'],
+            ['name' => 'María García', 'email' => 'maria@iestp.edu.pe'],
+            ['name' => 'Juan Martínez', 'email' => 'juan@iestp.edu.pe'],
+            ['name' => 'Ana Rodríguez', 'email' => 'ana@iestp.edu.pe'],
+            ['name' => 'Luis Fernández', 'email' => 'luis@iestp.edu.pe'],
+            ['name' => 'Rosa Pérez', 'email' => 'rosa@iestp.edu.pe'],
+            ['name' => 'Pedro Sánchez', 'email' => 'pedro@iestp.edu.pe'],
+            ['name' => 'Elena Morales', 'email' => 'elena@iestp.edu.pe'],
         ];
 
         foreach ($estudiantesData as $data) {
@@ -29,7 +29,7 @@ class AdditionalUsersSeeder extends Seeder
                 ['email' => $data['email']],
                 [
                     'name' => $data['name'],
-                    'institutional_email' => str_replace('@iestp.local', '@iestp.edu.pe', $data['email']),
+                    'institutional_email' => $data['email'],
                     'password' => bcrypt('password'),
                 ]
             );
@@ -38,8 +38,8 @@ class AdditionalUsersSeeder extends Seeder
 
         // Crear más trabajadores
         $trabajadoresData = [
-            ['name' => 'Diego Bibliotecario', 'email' => 'diego.lib@iestp.local'],
-            ['name' => 'Sofía Asistente', 'email' => 'sofia.asist@iestp.local'],
+            ['name' => 'Diego Bibliotecario', 'email' => 'diego.lib@iestp.edu.pe'],
+            ['name' => 'Sofía Asistente', 'email' => 'sofia.asist@iestp.edu.pe'],
         ];
 
         foreach ($trabajadoresData as $data) {
@@ -47,7 +47,7 @@ class AdditionalUsersSeeder extends Seeder
                 ['email' => $data['email']],
                 [
                     'name' => $data['name'],
-                    'institutional_email' => str_replace('@iestp.local', '@iestp.edu.pe', $data['email']),
+                    'institutional_email' => $data['email'],
                     'password' => bcrypt('password'),
                 ]
             );
@@ -56,7 +56,7 @@ class AdditionalUsersSeeder extends Seeder
 
         // Crear más admins
         $adminsData = [
-            ['name' => 'Sistema Admin', 'email' => 'system@iestp.local'],
+            ['name' => 'Sistema Admin', 'email' => 'system@iestp.edu.pe'],
         ];
 
         foreach ($adminsData as $data) {
@@ -64,7 +64,7 @@ class AdditionalUsersSeeder extends Seeder
                 ['email' => $data['email']],
                 [
                     'name' => $data['name'],
-                    'institutional_email' => str_replace('@iestp.local', '@iestp.edu.pe', $data['email']),
+                    'institutional_email' => $data['email'],
                     'password' => bcrypt('password'),
                 ]
             );

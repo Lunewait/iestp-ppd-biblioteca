@@ -109,7 +109,7 @@ class RolePermissionSeeder extends Seeder
 
         // Create demo users
         $admin = User::firstOrCreate(
-            ['email' => 'admin@iestp.local'],
+            ['email' => 'admin@iestp.edu.pe'],
             [
                 'name' => 'Administrador',
                 'institutional_email' => 'admin@iestp.edu.pe',
@@ -119,7 +119,7 @@ class RolePermissionSeeder extends Seeder
         $admin->assignRole('Admin');
 
         $worker = User::firstOrCreate(
-            ['email' => 'trabajador@iestp.local'],
+            ['email' => 'trabajador@iestp.edu.pe'],
             [
                 'name' => 'Trabajador Biblioteca',
                 'institutional_email' => 'trabajador@iestp.edu.pe',
@@ -129,7 +129,7 @@ class RolePermissionSeeder extends Seeder
         $worker->assignRole('Trabajador');
 
         $student = User::firstOrCreate(
-            ['email' => 'estudiante@iestp.local'],
+            ['email' => 'estudiante@iestp.edu.pe'],
             [
                 'name' => 'Juan Estudiante',
                 'institutional_email' => 'estudiante@iestp.edu.pe',
@@ -139,7 +139,7 @@ class RolePermissionSeeder extends Seeder
         $student->assignRole('Estudiante');
 
         $jefeArea = User::firstOrCreate(
-            ['email' => 'jefe@iestp.local'],
+            ['email' => 'jefe@iestp.edu.pe'],
             [
                 'name' => 'Jefe de Área',
                 'institutional_email' => 'jefe@iestp.edu.pe',
