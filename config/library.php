@@ -20,10 +20,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | Número de días que un libro puede estar prestado por defecto.
+    | El préstamo comienza cuando el estudiante recoge el material.
     |
     */
 
-    'default_loan_days' => env('LIBRARY_DEFAULT_LOAN_DAYS', 14),
+    'default_loan_days' => env('LIBRARY_DEFAULT_LOAN_DAYS', 7),
 
     /*
     |--------------------------------------------------------------------------

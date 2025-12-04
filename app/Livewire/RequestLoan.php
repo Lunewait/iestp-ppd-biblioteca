@@ -110,14 +110,25 @@ class RequestLoan extends Component
             return;
         }
 
-        // Crear solicitud con estado PENDING
+        // Verificar si el usuario tiene multas pendientes
+        $hasPendingFines = auth()->user()->hasUnpaidFines();
+
+        // Si NO tiene multas, aprobar automáticamente
+        // Si tiene multas, dejar pendiente para revisión manual
+        $approvalStatus = $hasPendingFines ? 'pending' : 'approved';
+        $fechaLimiteRecogida = $hasPendingFines ? null : now()->addHours(24);
+
+        // Crear solicitud
         $loan = Prestamo::create([
             'user_id' => auth()->id(),
             'material_id' => $this->selectedMaterial->id,
             'fecha_prestamo' => now(),
             'fecha_devolucion_esperada' => null, // Se establecerá cuando recoja
             'status' => 'activo',
-            'approval_status' => 'pending',
+            'approval_status' => $approvalStatus,
+            'approved_by' => $hasPendingFines ? null : auth()->id(),
+            'approval_date' => $hasPendingFines ? null : now(),
+            'fecha_limite_recogida' => $fechaLimiteRecogida,
             'registrado_por' => auth()->id(),
             'notas' => $this->requestReason,
         ]);
@@ -128,21 +139,33 @@ class RequestLoan extends Component
         }
 
         // Log the request
-        $loan->approvalLogs()->create([
-            'reviewer_id' => auth()->id(),
-            'action' => 'requested',
-            'notes' => 'Solicitud de préstamo creada por ' . auth()->user()->name,
-        ]);
-
-        // Notify admins
-        $this->notifyAdmins($loan);
+        if ($hasPendingFines) {
+            $loan->approvalLogs()->create([
+                'reviewer_id' => auth()->id(),
+                'action' => 'requested',
+                'notes' => 'Solicitud de préstamo creada por ' . auth()->user()->name . '. Pendiente de revisión por multas pendientes.',
+            ]);
+            
+            // Notify admins solo si requiere aprobación manual
+            $this->notifyAdmins($loan);
+            
+            $message = 'Solicitud enviada. Tienes multas pendientes, por lo que tu solicitud requiere aprobación manual.';
+        } else {
+            $loan->approvalLogs()->create([
+                'reviewer_id' => auth()->id(),
+                'action' => 'auto_approved',
+                'notes' => 'Solicitud aprobada automáticamente. Sin multas pendientes. El estudiante tiene 24 horas para recoger.',
+            ]);
+            
+            $message = '¡Solicitud APROBADA automáticamente! Tienes 24 horas para apersonarte a la biblioteca a recoger el material.';
+        }
 
         // Reset form
         $this->reset(['selectedMaterial', 'showForm', 'requestReason', 'searchMaterial']);
         
         $this->dispatch('notify',
-            message: 'Solicitud de préstamo enviada. Espera la aprobación del administrador.',
-            type: 'success'
+            message: $message,
+            type: $hasPendingFines ? 'warning' : 'success'
         );
     }
 

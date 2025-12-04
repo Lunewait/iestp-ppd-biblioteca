@@ -18,8 +18,10 @@
                     wire:model.live="filterStatus"
                     class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition"
                 >
-                    <option value="pending">⏳ Pendientes</option>
-                    <option value="approved">✅ Aprobadas</option>
+                    <option value="pending">⏳ Pendientes de Revisión</option>
+                    <option value="approved">✅ Aprobadas (Esperando recogida)</option>
+                    <option value="collected">📚 Recogidos (En préstamo)</option>
+                    <option value="expired">⏰ Expirados (No recogieron)</option>
                     <option value="rejected">❌ Rechazadas</option>
                     <option value="cancelled">🚫 Canceladas</option>
                 </select>
@@ -106,11 +108,38 @@
                                                     ✕ Rechazar
                                                 </button>
                                             </div>
+                                        @elseif ($loan->approval_status === 'approved' && !$loan->fecha_recogida)
+                                            {{-- Préstamo aprobado pero NO recogido aún --}}
+                                            <div class="flex flex-col gap-2">
+                                                <button
+                                                    wire:click="markAsCollected({{ $loan->id }})"
+                                                    wire:confirm="¿Confirmar que el estudiante recogió el material?"
+                                                    class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition"
+                                                >
+                                                    📦 Marcar Recogido
+                                                </button>
+                                                @if ($loan->fecha_limite_recogida && $loan->fecha_limite_recogida->isPast())
+                                                    <button
+                                                        wire:click="markAsExpired({{ $loan->id }})"
+                                                        wire:confirm="¿Marcar como expirado? El material volverá al stock."
+                                                        class="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition"
+                                                    >
+                                                        ⏰ Expirado (No recogió)
+                                                    </button>
+                                                @else
+                                                    <span class="text-xs text-gray-500">
+                                                        ⏰ Límite: {{ $loan->fecha_limite_recogida?->format('d/m H:i') ?? 'N/A' }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @elseif ($loan->approval_status === 'collected')
+                                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+                                                📚 En préstamo
+                                            </span>
                                         @else
                                             <button
                                                 type="button"
-                                                class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition"
-                                                @click="$dispatch('open-detail', { loanId: {{ $loan->id }} })"
+                                                class="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-xs font-bold rounded-lg transition"
                                             >
                                                 📋 Ver Detalles
                                             </button>

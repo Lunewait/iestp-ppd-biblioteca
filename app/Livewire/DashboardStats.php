@@ -60,6 +60,49 @@ class DashboardStats extends Component
             ->get();
     }
 
+    /**
+     * Obtener préstamos aprobados del usuario actual que están pendientes de recogida
+     */
+    #[Computed]
+    public function approvedLoansToCollect()
+    {
+        if (!auth()->user()?->hasRole('Estudiante')) {
+            return collect();
+        }
+
+        return Prestamo::where('user_id', auth()->id())
+            ->where('approval_status', 'approved')
+            ->whereNull('fecha_recogida')
+            ->with('material')
+            ->get();
+    }
+
+    /**
+     * Verificar si el usuario tiene préstamos aprobados pendientes de recoger
+     */
+    #[Computed]
+    public function hasApprovedLoansToCollect()
+    {
+        return $this->approvedLoansToCollect->count() > 0;
+    }
+
+    /**
+     * Obtener préstamos con tiempo de recogida expirado (para el admin)
+     */
+    #[Computed]
+    public function expiredCollectionLoans()
+    {
+        if (!auth()->user()?->can('approve_loan')) {
+            return collect();
+        }
+
+        return Prestamo::where('approval_status', 'approved')
+            ->whereNull('fecha_recogida')
+            ->where('fecha_limite_recogida', '<', now())
+            ->with(['usuario', 'material'])
+            ->get();
+    }
+
     public function render()
     {
         return view('livewire.dashboard-stats');

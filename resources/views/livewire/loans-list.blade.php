@@ -167,41 +167,67 @@
                                 {{ $loan->fecha_devolucion_esperada?->format('d/m/Y') ?? 'N/A' }}
                             </td>
                             <td class="px-6 py-4">
-                                @if($loan->status === 'devuelto')
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                                        Devuelto
+                                {{-- Estado basado en approval_status --}}
+                                @if($loan->approval_status === 'pending')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                        ⏳ Pendiente de Aprobación
                                     </span>
-                                @elseif($loan->status === 'pending')
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
-                                        Pendiente
-                                    </span>
-                                @elseif($loan->status === 'rejected')
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-                                        Rechazado
-                                    </span>
-                                @else
-                                    @php
-                                        $daysUntilDue = $loan->getDaysUntilDue();
-                                    @endphp
-                                    @if($daysUntilDue < 0)
-                                        <span
-                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-                                            Vencido ({{ number_format(abs($daysUntilDue), 0) }} días)
+                                @elseif($loan->approval_status === 'approved' && !$loan->fecha_recogida)
+                                    <div class="space-y-1">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                                            ✅ Aprobado - Recoger
                                         </span>
-                                    @elseif($daysUntilDue <= 3)
-                                        <span
-                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
-                                            Próximo a vencer
-                                        </span>
+                                        @if($loan->fecha_limite_recogida)
+                                            <div class="text-xs {{ $loan->fecha_limite_recogida->isPast() ? 'text-red-600 font-bold' : 'text-gray-500' }}">
+                                                ⏰ Límite: {{ $loan->fecha_limite_recogida->format('d/m H:i') }}
+                                                @if($loan->fecha_limite_recogida->isPast())
+                                                    (¡Expirado!)
+                                                @else
+                                                    ({{ $loan->fecha_limite_recogida->diffForHumans() }})
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
+                                @elseif($loan->approval_status === 'rejected')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                                        ❌ Rechazado
+                                    </span>
+                                @elseif($loan->approval_status === 'expired')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                        ⏰ Expirado (No recogido)
+                                    </span>
+                                @elseif($loan->status === 'devuelto')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                        📚 Devuelto
+                                    </span>
+                                @elseif($loan->approval_status === 'collected' || $loan->fecha_recogida)
+                                    {{-- Préstamo activo (recogido) --}}
+                                    @if($loan->fecha_devolucion_esperada)
+                                        @php
+                                            $daysUntilDue = $loan->getDaysUntilDue();
+                                        @endphp
+                                        @if($daysUntilDue < 0)
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                                                🔴 Vencido ({{ number_format(abs($daysUntilDue), 0) }} días)
+                                            </span>
+                                        @elseif($daysUntilDue <= 3)
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                                🟡 Vence en {{ $daysUntilDue }} días
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                📖 Activo ({{ $daysUntilDue }} días)
+                                            </span>
+                                        @endif
                                     @else
-                                        <span
-                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                                            Activo
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                            📖 Activo
                                         </span>
                                     @endif
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                        {{ ucfirst($loan->status ?? 'Desconocido') }}
+                                    </span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-right flex items-center justify-end gap-2">
