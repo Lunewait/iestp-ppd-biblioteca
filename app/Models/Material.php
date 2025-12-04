@@ -55,15 +55,22 @@ class Material extends Model
      */
     public function isAvailable()
     {
-        if ($this->type === 'digital' || $this->type === 'hibrido') {
+        // Los materiales digitales siempre están disponibles
+        if ($this->type === 'digital') {
             return true;
         }
 
-        if ($this->materialFisico && $this->materialFisico->available > 0) {
-            return true;
+        // Para materiales físicos, verificar stock disponible
+        if (!$this->materialFisico || $this->materialFisico->available <= 0) {
+            return false;
         }
 
-        return false;
+        // Verificar que no haya préstamos en proceso (pending, approved, collected)
+        $hasActiveLoan = $this->prestamos()
+            ->whereIn('approval_status', ['pending', 'approved', 'collected'])
+            ->exists();
+
+        return !$hasActiveLoan;
     }
 
     /**

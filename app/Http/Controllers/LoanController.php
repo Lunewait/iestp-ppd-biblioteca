@@ -70,6 +70,25 @@ class LoanController extends Controller
             return back()->with('error', 'Material no disponible para préstamo');
         }
 
+        // Verificar límite de 3 solicitudes activas por usuario
+        $activeLoanCount = Prestamo::getActiveRequestsCount($validated['user_id']);
+
+        $maxLoans = config('library.max_active_loans_per_user', 3);
+        
+        if ($activeLoanCount >= $maxLoans) {
+            return back()->with('error', "El usuario alcanzó el límite permitido de solicitudes (máximo {$maxLoans})");
+        }
+
+        // Verificar que el material no esté ya prestado activamente
+        $existingLoan = Prestamo::where('material_id', $validated['material_id'])
+            ->where('status', 'activo')
+            ->whereIn('approval_status', ['pending', 'approved'])
+            ->exists();
+
+        if ($existingLoan) {
+            return back()->with('error', 'Este libro ya está reservado o prestado');
+        }
+
         // Check if user has unpaid fines
         $unpaidFines = Multa::where('user_id', $validated['user_id'])
             ->where('status', 'pendiente')

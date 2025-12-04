@@ -17,6 +17,54 @@
         </h1>
     </div>
 
+    <!-- Info Card for Students - Loan Limit -->
+    @if(auth()->user()->hasRole('Estudiante'))
+        @php
+            // Contar TODAS las solicitudes en proceso (pending, approved, collected)
+            $activeLoanCount = \App\Models\Prestamo::getActiveRequestsCount(auth()->id());
+            $maxLoans = config('library.max_active_loans_per_user', 3);
+            $remainingSlots = max(0, $maxLoans - $activeLoanCount);
+            $percentage = $maxLoans > 0 ? ($activeLoanCount / $maxLoans) * 100 : 0;
+        @endphp
+        
+        <div class="mb-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-bold mb-1">Límite de Solicitudes</h3>
+                    <p class="text-blue-100 text-sm">Tienes {{ $activeLoanCount }} de {{ $maxLoans }} solicitudes activas</p>
+                    <p class="text-blue-50 text-xs mt-1">(Incluye: pendientes, aprobadas y prestadas)</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-3xl font-bold">{{ $activeLoanCount }}/{{ $maxLoans }}</div>
+                    @if($remainingSlots > 0)
+                        <p class="text-blue-100 text-sm">Puedes solicitar {{ $remainingSlots }} más</p>
+                    @else
+                        <p class="text-yellow-200 text-sm font-medium">¡Límite alcanzado!</p>
+                        <p class="text-blue-50 text-xs">Devuelve un libro para solicitar más</p>
+                    @endif
+                </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="w-full bg-blue-700 rounded-full h-2.5 overflow-hidden">
+                <div class="h-2.5 rounded-full transition-all duration-500 {{ $percentage >= 100 ? 'bg-yellow-400' : 'bg-white' }}" 
+                     style="width: {{ min($percentage, 100) }}%"></div>
+            </div>
+            
+            @if($remainingSlots > 0)
+                <div class="mt-4">
+                    <a href="{{ route('loan-requests.index') }}" 
+                       class="inline-flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Solicitar Nuevo Libro
+                    </a>
+                </div>
+            @endif
+        </div>
+    @endif
+
     <!-- Enhanced Filters -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div class="mb-4 flex items-center justify-between border-b border-gray-100 pb-4">

@@ -28,13 +28,24 @@ class OverdueLoanSeeder extends Seeder
         }
 
         // 3. Crear un préstamo con fechas PASADAS (Vencido hace 10 días)
+        // 3. Crear un préstamo con fechas PASADAS (Vencido hace 10 días)
+        
+        // Decrementar stock
+        if ($material->materialFisico) {
+            $material->materialFisico->decrement('available');
+        }
+
         Prestamo::create([
             'user_id' => $student->id,
             'material_id' => $material->id,
             'fecha_prestamo' => now()->subDays(20), // Se prestó hace 20 días
+            'fecha_recogida' => now()->subDays(20),
             'fecha_devolucion_esperada' => now()->subDays(10), // Debió devolverse hace 10 días
             'status' => 'activo', // Aún figura como activo (no devuelto)
+            'approval_status' => 'collected',
             'registrado_por' => User::role('Admin')->first()->id ?? 1,
+            'approved_by' => User::role('Admin')->first()->id ?? 1,
+            'approval_date' => now()->subDays(20),
         ]);
 
         $this->command->info("¡Préstamo vencido creado para el estudiante: {$student->name}!");
