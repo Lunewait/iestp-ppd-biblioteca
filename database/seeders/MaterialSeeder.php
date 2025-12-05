@@ -69,18 +69,24 @@ class MaterialSeeder extends Seeder
         ];
 
         foreach ($materialesFisicos as $data) {
-            $material = Material::create($data);
+            // Usar firstOrCreate para evitar duplicados
+            $material = Material::firstOrCreate(
+                ['code' => $data['code']],
+                $data
+            );
 
-            // Crear detalles físicos
-            MaterialFisico::create([
-                'material_id' => $material->id,
-                'isbn' => '978-' . rand(1000000000, 9999999999),
-                'publisher' => 'Editorial Técnica',
-                'publication_year' => rand(2018, 2024),
-                'stock' => 3,
-                'available' => 3,
-                'location' => 'Estante ' . chr(65 + rand(0, 5)) . '-' . rand(1, 10),
-            ]);
+            // Solo crear detalles si el material es nuevo
+            if ($material->wasRecentlyCreated) {
+                MaterialFisico::create([
+                    'material_id' => $material->id,
+                    'isbn' => '978-' . rand(1000000000, 9999999999),
+                    'publisher' => 'Editorial Técnica',
+                    'publication_year' => rand(2018, 2024),
+                    'stock' => 3,
+                    'available' => 3,
+                    'location' => 'Estante ' . chr(65 + rand(0, 5)) . '-' . rand(1, 10),
+                ]);
+            }
         }
 
         // Materiales Digitales (lectura en línea gratuita)
@@ -155,17 +161,23 @@ class MaterialSeeder extends Seeder
             $url = $data['url'];
             unset($data['url']);
 
-            $material = Material::create($data);
+            // Usar firstOrCreate para evitar duplicados
+            $material = Material::firstOrCreate(
+                ['code' => $data['code']],
+                $data
+            );
 
-            // Crear detalles digitales
-            MaterialDigital::create([
-                'material_id' => $material->id,
-                'url' => $url,
-                'file_type' => 'web',
-                'license' => 'Gratuito',
-                'downloadable' => false,
-                'access_count' => rand(10, 200),
-            ]);
+            // Solo crear detalles si el material es nuevo
+            if ($material->wasRecentlyCreated) {
+                MaterialDigital::create([
+                    'material_id' => $material->id,
+                    'url' => $url,
+                    'file_type' => 'web',
+                    'license' => 'Gratuito',
+                    'downloadable' => false,
+                    'access_count' => rand(10, 200),
+                ]);
+            }
         }
     }
 }
