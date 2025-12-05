@@ -26,16 +26,41 @@ class RequestLoan extends Component
     #[\Livewire\Attributes\Computed]
     public function availableMaterials()
     {
+        // Solo mostrar materiales físicos que estén disponibles
+        // (que tengan stock disponible y no estén completamente prestados)
         return Material::where('type', '!=', 'digital')
             ->where(function ($query) {
                 $query->where('title', 'like', '%' . $this->searchMaterial . '%')
                     ->orWhere('author', 'like', '%' . $this->searchMaterial . '%');
             })
+            // Filtrar solo materiales que tengan disponibilidad
+            ->whereHas('materialFisico', function ($query) {
+                $query->where('available', '>', 0);
+            })
+            // Excluir materiales que ya tienen préstamos activos o pendientes de aprobación
+            ->whereDoesntHave('prestamos', function ($query) {
+                $query->where('status', 'activo')
+                      ->whereIn('approval_status', ['pending', 'approved']);
+            })
+            ->with('materialFisico')
             ->get();
     }
 
     public function selectMaterial($materialId)
     {
+        // Verificar límite de 3 SOLICITUDES (pending, approved, collected)
+        $activeLoanCount = Prestamo::getActiveRequestsCount(auth()->id());
+
+        $maxLoans = config('library.max_active_loans_per_user', 3);
+        
+        if ($activeLoanCount >= $maxLoans) {
+            $this->dispatch('notify', 
+                message: "Alcanzó el límite permitido de solicitudes (máximo {$maxLoans}). Debes devolver o esperar a que expire una solicitud para poder solicitar más libros.",
+                type: 'error'
+            );
+            return;
+        }
+
         $this->selectedMaterial = Material::findOrFail($materialId);
         $this->showForm = true;
     }
@@ -50,34 +75,97 @@ class RequestLoan extends Component
             return;
         }
 
-        // Create loan with pending approval
+        // Verificar nuevamente el límite de 3 SOLICITUDES
+        $activeLoanCount = Prestamo::getActiveRequestsCount(auth()->id());
+
+        $maxLoans = config('library.max_active_loans_per_user', 3);
+        
+        if ($activeLoanCount >= $maxLoans) {
+            $this->dispatch('notify', 
+                message: "Alcanzó el límite permitido de solicitudes (máximo {$maxLoans})",
+                type: 'error'
+            );
+            return;
+        }
+
+        // Verificar que el material aún esté disponible
+        if (!$this->selectedMaterial->isAvailable()) {
+            $this->dispatch('notify', 
+                message: 'Este material ya no está disponible',
+                type: 'error'
+            );
+            return;
+        }
+
+        // Verificar que no haya otro préstamo activo/pendiente de este mismo material
+        $existingLoan = Prestamo::where('material_id', $this->selectedMaterial->id)
+            ->whereIn('approval_status', ['pending', 'approved', 'collected'])
+            ->exists();
+
+        if ($existingLoan) {
+            $this->dispatch('notify', 
+                message: 'Este libro ya está reservado o prestado',
+                type: 'error'
+            );
+            return;
+        }
+
+        // Verificar si el usuario tiene multas pendientes
+        $hasPendingFines = auth()->user()->hasUnpaidFines();
+
+        // Si NO tiene multas, aprobar automáticamente
+        // Si tiene multas, dejar pendiente para revisión manual
+        $approvalStatus = $hasPendingFines ? 'pending' : 'approved';
+        $fechaLimiteRecogida = $hasPendingFines ? null : now()->addHours(24);
+
+        // Crear solicitud
         $loan = Prestamo::create([
             'user_id' => auth()->id(),
             'material_id' => $this->selectedMaterial->id,
             'fecha_prestamo' => now(),
-            'fecha_devolucion_esperada' => now()->addDays(14),
+            'fecha_devolucion_esperada' => null, // Se establecerá cuando recoja
             'status' => 'activo',
-            'approval_status' => 'pending',
+            'approval_status' => $approvalStatus,
+            'approved_by' => $hasPendingFines ? null : auth()->id(),
+            'approval_date' => $hasPendingFines ? null : now(),
+            'fecha_limite_recogida' => $fechaLimiteRecogida,
             'registrado_por' => auth()->id(),
             'notas' => $this->requestReason,
         ]);
 
-        // Log the request
-        $loan->approvalLogs()->create([
-            'reviewer_id' => auth()->id(),
-            'action' => 'requested',
-            'notes' => 'Solicitud de préstamo creada por ' . auth()->user()->name,
-        ]);
+        // Disminuir stock disponible INMEDIATAMENTE (reserva)
+        if ($this->selectedMaterial->materialFisico) {
+            $this->selectedMaterial->materialFisico->decrement('available');
+        }
 
-        // Notify admins
-        $this->notifyAdmins($loan);
+        // Log the request
+        if ($hasPendingFines) {
+            $loan->approvalLogs()->create([
+                'reviewer_id' => auth()->id(),
+                'action' => 'requested',
+                'notes' => 'Solicitud de préstamo creada por ' . auth()->user()->name . '. Pendiente de revisión por multas pendientes.',
+            ]);
+            
+            // Notify admins solo si requiere aprobación manual
+            $this->notifyAdmins($loan);
+            
+            $message = 'Solicitud enviada. Tienes multas pendientes, por lo que tu solicitud requiere aprobación manual.';
+        } else {
+            $loan->approvalLogs()->create([
+                'reviewer_id' => auth()->id(),
+                'action' => 'auto_approved',
+                'notes' => 'Solicitud aprobada automáticamente. Sin multas pendientes. El estudiante tiene 24 horas para recoger.',
+            ]);
+            
+            $message = '¡Solicitud APROBADA automáticamente! Tienes 24 horas para apersonarte a la biblioteca a recoger el material.';
+        }
 
         // Reset form
         $this->reset(['selectedMaterial', 'showForm', 'requestReason', 'searchMaterial']);
         
         $this->dispatch('notify',
-            message: 'Solicitud de préstamo enviada. Espera la aprobación del administrador.',
-            type: 'success'
+            message: $message,
+            type: $hasPendingFines ? 'warning' : 'success'
         );
     }
 

@@ -23,45 +23,113 @@ class PrestamoMaLoanSeeder extends Seeder
             return;
         }
 
-        // Crear préstamos activos
+        // 1. Préstamos RECOGIDOS (Activos - 'collected')
+        // El estudiante ya tiene el libro
         foreach ($students->take(3) as $student) {
-            // Préstamo activo (dentro del plazo)
+            $material = $materials->random();
+            
+            // Decrementar stock (ya lo tiene)
+            if ($material->materialFisico) {
+                $material->materialFisico->decrement('available');
+            }
+
             $prestamo = Prestamo::create([
                 'user_id' => $student->id,
-                'material_id' => $materials->random()->id,
-                'fecha_prestamo' => now()->subDays(5),
-                'fecha_devolucion_esperada' => now()->addDays(9),
+                'material_id' => $material->id,
+                'fecha_prestamo' => now()->subDays(2),
+                'fecha_recogida' => now()->subDays(2),
+                'fecha_devolucion_esperada' => now()->addDays(5), // 7 días total
                 'status' => 'activo',
-                'approval_status' => 'approved',
+                'approval_status' => 'collected',
                 'approved_by' => $worker->id,
                 'registrado_por' => $worker->id,
-                'notas' => 'Préstamo aprobado por trabajador',
-                'approval_date' => now()->subDays(5),
+                'notas' => 'Material entregado al estudiante',
+                'approval_date' => now()->subDays(3),
             ]);
 
-            // Log de aprobación
+            // Log de recolección
             $prestamo->approvalLogs()->create([
                 'reviewer_id' => $worker->id,
-                'action' => 'approved',
-                'notes' => 'Aprobado por ' . $worker->name,
+                'action' => 'collected',
+                'notes' => 'Material recogido por el estudiante',
             ]);
         }
 
-        // Crear préstamos vencidos con multas
+        // 2. Préstamos APROBADOS (Esperando recogida - 'approved')
+        // El estudiante tiene 24h para recoger
         foreach ($students->skip(3)->take(2) as $student) {
+            $material = $materials->random();
+            
+            // Decrementar stock (está reservado)
+            if ($material->materialFisico) {
+                $material->materialFisico->decrement('available');
+            }
+
             $prestamo = Prestamo::create([
                 'user_id' => $student->id,
-                'material_id' => $materials->random()->id,
-                'fecha_prestamo' => now()->subDays(25),
-                'fecha_devolucion_esperada' => now()->subDays(11), // Ya vencido
+                'material_id' => $material->id,
+                'fecha_prestamo' => now(),
+                'fecha_limite_recogida' => now()->addHours(20), // Le quedan 20h
+                'fecha_devolucion_esperada' => null, // Se define al recoger
                 'status' => 'activo',
                 'approval_status' => 'approved',
                 'approved_by' => $worker->id,
-                'registrado_por' => $worker->id,
-                'approval_date' => now()->subDays(25),
+                'registrado_por' => $student->id,
+                'approval_date' => now(),
+                'notas' => 'Aprobado, esperando recogida',
             ]);
 
-        // Crear multa automática
+            $prestamo->approvalLogs()->create([
+                'reviewer_id' => $worker->id,
+                'action' => 'approved',
+                'notes' => 'Aprobado, estudiante tiene 24h para recoger',
+            ]);
+        }
+
+        // 3. Préstamos PENDIENTES (Solicitudes - 'pending')
+        // Esperando aprobación del admin
+        foreach ($students->skip(5)->take(2) as $student) {
+            $material = $materials->random();
+            
+            // Decrementar stock (reserva inmediata al solicitar)
+            if ($material->materialFisico) {
+                $material->materialFisico->decrement('available');
+            }
+
+            Prestamo::create([
+                'user_id' => $student->id,
+                'material_id' => $material->id,
+                'fecha_prestamo' => now(),
+                'fecha_devolucion_esperada' => null,
+                'status' => 'activo',
+                'approval_status' => 'pending',
+                'registrado_por' => $student->id,
+                'notas' => 'Solicitud de préstamo enviada',
+            ]);
+        }
+
+        // 4. Préstamos VENCIDOS (No devueltos a tiempo - 'collected' + fecha pasada)
+        foreach ($students->skip(7)->take(2) as $student) {
+            $material = $materials->random();
+            
+            if ($material->materialFisico) {
+                $material->materialFisico->decrement('available');
+            }
+
+            $prestamo = Prestamo::create([
+                'user_id' => $student->id,
+                'material_id' => $material->id,
+                'fecha_prestamo' => now()->subDays(15),
+                'fecha_recogida' => now()->subDays(15),
+                'fecha_devolucion_esperada' => now()->subDays(8), // Vencido hace 8 días
+                'status' => 'activo', // Sigue activo hasta que devuelva
+                'approval_status' => 'collected',
+                'approved_by' => $worker->id,
+                'registrado_por' => $worker->id,
+                'approval_date' => now()->subDays(15),
+            ]);
+
+            // Crear multa automática
             $diasVencido = now()->diffInDays($prestamo->fecha_devolucion_esperada);
             $monto = $diasVencido * 1.50;
 
@@ -71,39 +139,29 @@ class PrestamoMaLoanSeeder extends Seeder
                 'monto' => $monto,
                 'razon' => 'Retraso en devolución de material',
                 'status' => 'pendiente',
-                'fecha_vencimiento' => $prestamo->fecha_devolucion_esperada->addDays(7),
+                'fecha_vencimiento' => now()->addDays(7),
                 'registrado_por' => $worker->id,
             ]);
         }
+        
+        // 5. Préstamos EXPIRADOS (No recogió en 24h - 'expired')
+        // El stock YA volvió al catálogo
+        foreach ($students->skip(9)->take(2) as $student) {
+            $material = $materials->random();
+            
+            // NO decrementamos stock porque ya expiró y volvió
 
-        // Crear préstamos rechazados
-        foreach ($students->skip(5)->take(2) as $student) {
             Prestamo::create([
                 'user_id' => $student->id,
-                'material_id' => $materials->random()->id,
-                'fecha_prestamo' => now()->subDays(15),
-                'fecha_devolucion_esperada' => now()->subDays(1),
-                'status' => 'devuelto',
-                'approval_status' => 'rejected',
+                'material_id' => $material->id,
+                'fecha_prestamo' => now()->subDays(2),
+                'fecha_limite_recogida' => now()->subDays(1), // Expiró ayer
+                'status' => 'vencido',
+                'approval_status' => 'expired',
                 'approved_by' => $worker->id,
                 'registrado_por' => $student->id,
-                'approval_reason' => 'Material no disponible en ese momento',
-                'approval_date' => now()->subDays(14),
-                'notas' => 'Solicitud rechazada',
-            ]);
-        }
-
-        // Crear préstamos pendientes de aprobación
-        foreach ($students->skip(7)->take(2) as $student) {
-            Prestamo::create([
-                'user_id' => $student->id,
-                'material_id' => $materials->random()->id,
-                'fecha_prestamo' => now(),
-                'fecha_devolucion_esperada' => now()->addDays(14),
-                'status' => 'activo',
-                'approval_status' => 'pending',
-                'registrado_por' => $student->id,
-                'notas' => 'Pendiente de aprobación del administrador',
+                'approval_date' => now()->subDays(2),
+                'notas' => 'No recogido a tiempo',
             ]);
         }
     }

@@ -63,6 +63,26 @@ class MaterialsList extends Component
             $query->where('type', $this->filterType);
         }
 
+        // Para estudiantes, solo mostrar materiales disponibles
+        // Los administradores ven todos los materiales
+        if (auth()->check() && auth()->user()->hasRole('Estudiante')) {
+            $query->where(function ($q) {
+                // Materiales digitales siempre disponibles
+                $q->where('type', 'digital')
+                  // O materiales físicos con stock y sin préstamos activos
+                  ->orWhere(function ($subQ) {
+                      $subQ->where('type', '!=', 'digital')
+                           ->whereHas('materialFisico', function ($fisicoQ) {
+                               $fisicoQ->where('available', '>', 0);
+                           })
+                           ->whereDoesntHave('prestamos', function ($prestamoQ) {
+                               $prestamoQ->where('status', 'activo')
+                                        ->whereIn('approval_status', ['pending', 'approved']);
+                           });
+                  });
+            });
+        }
+
         $query->orderBy($this->sortBy, 'desc');
 
         $materials = $query->with(['materialFisico', 'materialDigital'])

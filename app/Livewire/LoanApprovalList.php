@@ -64,28 +64,80 @@ class LoanApprovalList extends Component
 
         $loan = Prestamo::findOrFail($this->approvingLoanId);
 
-        // Update loan status
+        // Aprobar: dar 24 horas para que el estudiante recoja
         $loan->update([
             'approval_status' => 'approved',
-            'status' => 'activo', // Cambiar estado a activo
+            'status' => 'activo',
             'approved_by' => auth()->id(),
             'approval_date' => now(),
             'approval_reason' => $this->approvalReason,
+            'fecha_limite_recogida' => now()->addHours(24), // 24 horas para recoger
         ]);
 
         // Log approval
         $loan->approvalLogs()->create([
             'reviewer_id' => auth()->id(),
             'action' => 'approved',
-            'notes' => $this->approvalReason ?: 'Aprobado por ' . auth()->user()->name,
+            'notes' => $this->approvalReason ?: 'Aprobado por ' . auth()->user()->name . '. Estudiante tiene 24 horas para recoger.',
         ]);
 
         $this->dispatch('notify',
-            message: 'Préstamo aprobado exitosamente',
+            message: 'Préstamo aprobado. El estudiante tiene 24 horas para recoger el material.',
             type: 'success'
         );
 
         $this->closeApprovalModal();
+        $this->resetPage();
+    }
+
+    /**
+     * Mark loan as collected by student
+     */
+    public function markAsCollected($loanId)
+    {
+        $loan = Prestamo::findOrFail($loanId);
+
+        if ($loan->approval_status !== 'approved') {
+            $this->dispatch('notify',
+                message: 'Este préstamo no está en estado aprobado',
+                type: 'error'
+            );
+            return;
+        }
+
+        // Marcar como recogido e iniciar período de préstamo
+        $loan->markAsCollected();
+
+        $this->dispatch('notify',
+            message: 'Material marcado como recogido. El estudiante tiene 7 días para devolverlo.',
+            type: 'success'
+        );
+
+        $this->resetPage();
+    }
+
+    /**
+     * Mark loan as expired (student didn't collect in time)
+     */
+    public function markAsExpired($loanId)
+    {
+        $loan = Prestamo::findOrFail($loanId);
+
+        if (!$loan->isCollectionExpired()) {
+            $this->dispatch('notify',
+                message: 'El plazo de recogida aún no ha expirado',
+                type: 'error'
+            );
+            return;
+        }
+
+        $loan->markAsExpired();
+
+        $this->dispatch('notify',
+            message: 'Préstamo marcado como expirado. El material vuelve a estar disponible.',
+            type: 'info'
+        );
+
         $this->resetPage();
     }
 
@@ -113,6 +165,11 @@ class LoanApprovalList extends Component
             'approval_reason' => $this->approvalReason,
         ]);
 
+        // Devolver stock al catálogo (ya NO está prestado)
+        if ($loan->material->materialFisico) {
+            $loan->material->materialFisico->increment('available');
+        }
+
         // Log rejection
         $loan->approvalLogs()->create([
             'reviewer_id' => auth()->id(),
@@ -121,7 +178,7 @@ class LoanApprovalList extends Component
         ]);
 
         $this->dispatch('notify',
-            message: 'Préstamo rechazado',
+            message: 'Préstamo rechazado. El material vuelve al catálogo.',
             type: 'warning'
         );
 

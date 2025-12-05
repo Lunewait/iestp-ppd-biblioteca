@@ -65,19 +65,30 @@
                         <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
                             <p class="text-sm font-semibold text-blue-900">📅 Términos del Préstamo:</p>
                             <ul class="text-sm text-blue-800 mt-2 space-y-1">
-                                <li>✓ Duración: 14 días</li>
-                                <li>✓ Renovable: 1 vez (otros 14 días)</li>
+                                <li>✓ Duración: <strong>7 días</strong> después de recoger el material</li>
+                                <li>✓ Plazo para recoger: <strong>24 horas</strong> después de la aprobación</li>
                                 <li>✓ Multa por vencimiento: S/. 1.50 por día</li>
                             </ul>
                         </div>
 
                         <!-- Info Pendiente de Aprobación -->
-                        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
-                            <p class="text-sm font-semibold text-yellow-900">⏳ Próximo Paso:</p>
-                            <p class="text-sm text-yellow-800 mt-1">
-                                Tu solicitud será revisada por un administrador. Recibirás una notificación cuando sea aprobada o rechazada.
+                        <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+                            <p class="text-sm font-semibold text-green-900">✅ Aprobación Automática:</p>
+                            <p class="text-sm text-green-800 mt-1">
+                                Si <strong>no tienes multas pendientes</strong>, tu solicitud será aprobada automáticamente. 
+                                Solo tendrás que ir a recoger el material a la biblioteca dentro de las 24 horas.
                             </p>
                         </div>
+
+                        <!-- Si tiene multas -->
+                        @if(auth()->user()->hasUnpaidFines())
+                            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                                <p class="text-sm font-semibold text-yellow-900">⚠️ Tienes Multas Pendientes:</p>
+                                <p class="text-sm text-yellow-800 mt-1">
+                                    Tu solicitud requerirá aprobación manual por parte del administrador debido a multas pendientes.
+                                </p>
+                            </div>
+                        @endif
 
                         <!-- Botones -->
                         <div class="flex gap-3 pt-4">
