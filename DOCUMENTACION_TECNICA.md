@@ -1,250 +1,491 @@
-# Documentación Técnica del Sistema de Biblioteca "Pedro P. Díaz"
-
-## 1. Requerimientos del Sistema
-
-### 1.1. Requerimientos Funcionales (RF)
-
-Los requerimientos funcionales definen las acciones específicas que el sistema debe ser capaz de realizar.
-
-**Módulo de Autenticación y Usuarios:**
-*   **RF-01:** El sistema debe permitir el inicio de sesión mediante correo institucional y contraseña.
-*   **RF-02:** El sistema debe gestionar diferentes roles de usuario: Administrador, Trabajador, Jefe de Área y Estudiante.
-*   **RF-03:** El sistema debe permitir al administrador crear, editar y deshabilitar usuarios.
-
-**Módulo de Gestión de Materiales:**
-*   **RF-04:** El sistema debe permitir registrar materiales bibliográficos de tres tipos: Físico, Digital e Híbrido.
-*   **RF-05:** Para materiales físicos, se debe controlar el stock, ubicación y código ISBN.
-*   **RF-06:** Para materiales digitales, se debe almacenar la URL del recurso y permitir su visualización en línea.
-*   **RF-07:** El sistema debe permitir la búsqueda de materiales por título, autor o código.
-
-**Módulo de Préstamos y Reservas:**
-*   **RF-08:** Los estudiantes deben poder solicitar préstamos de libros físicos a través del sistema.
-*   **RF-09:** Los administradores/trabajadores deben poder aprobar o rechazar solicitudes de préstamo.
-*   **RF-10:** El sistema debe registrar la fecha de préstamo y calcular la fecha de devolución esperada.
-*   **RF-11:** El sistema debe permitir registrar la devolución de un material, liberando el stock.
-*   **RF-12:** El sistema debe permitir a los estudiantes reservar libros si no hay stock disponible (Cola de espera).
-
-**Módulo de Sanciones (Multas):**
-*   **RF-13:** El sistema debe calcular automáticamente multas por retraso en la devolución (S/. 1.50 por día).
-*   **RF-14:** El administrador debe poder registrar multas manuales por otros incidentes (daño, pérdida).
-*   **RF-15:** El sistema debe impedir nuevos préstamos a estudiantes con multas pendientes ("deudores").
-
-**Módulo de Reportes:**
-*   **RF-16:** El sistema debe permitir exportar la lista de materiales y el historial de préstamos a formato Excel/CSV.
-*   **RF-17:** El sistema debe mostrar un dashboard con indicadores clave (KPIs) como libros más prestados y total de usuarios.
-
-### 1.2. Requerimientos No Funcionales (RNF)
-
-Los requerimientos no funcionales definen atributos de calidad, rendimiento y seguridad.
-
-*   **RNF-01 (Usabilidad):** La interfaz debe ser intuitiva, responsiva (adaptable a móviles y tablets) y seguir principios de diseño moderno (UI/UX).
-*   **RNF-02 (Seguridad):** Las contraseñas de los usuarios deben almacenarse encriptadas (Bcrypt).
-*   **RNF-03 (Seguridad):** El sistema debe validar los roles para restringir el acceso a funciones administrativas.
-*   **RNF-04 (Rendimiento):** El tiempo de carga de las páginas principales no debe exceder los 2 segundos en condiciones normales.
-*   **RNF-05 (Disponibilidad):** El sistema debe estar disponible 24/7 para consultas de catálogo y lectura de material digital.
-*   **RNF-06 (Compatibilidad):** El sistema debe ser compatible con los navegadores modernos (Chrome, Firefox, Edge, Safari).
+# 📚 Sistema de Biblioteca IESTP Pedro P. Díaz
+## Documentación Técnica Completa
 
 ---
 
-## 2. Diagramas del Sistema
+## 1. TECNOLOGÍAS UTILIZADAS
 
-### 2.1. Diagrama de Clases (Simplificado)
+### Backend
+| Tecnología | Versión | Propósito |
+|------------|---------|-----------|
+| **Laravel** | 12.x | Framework PHP principal |
+| **PHP** | 8.2 | Lenguaje de programación |
+| **MySQL/PostgreSQL** | 8.0/15 | Base de datos |
+| **Livewire** | 3.x | Componentes reactivos sin JavaScript |
+| **Spatie Permission** | 6.x | Sistema de roles y permisos |
 
-```mermaid
-classDiagram
-    class User {
-        +Integer id
-        +String name
-        +String email
-        +String password
-        +login()
-        +hasRole(role)
-    }
+### Frontend
+| Tecnología | Propósito |
+|------------|-----------|
+| **Blade** | Motor de plantillas de Laravel |
+| **Tailwind CSS** | Framework de estilos |
+| **Vite** | Compilador de assets |
+| **Font Awesome** | Iconos |
 
-    class Material {
-        +Integer id
-        +String title
-        +String author
-        +String code
-        +Enum type
-        +isAvailable()
-    }
+### Despliegue
+| Tecnología | Propósito |
+|------------|-----------|
+| **Docker** | Contenedores |
+| **Render** | Hosting en la nube |
+| **GitHub** | Control de versiones |
 
-    class MaterialFisico {
-        +Integer material_id
-        +Integer stock
-        +String location
-    }
+---
 
-    class MaterialDigital {
-        +Integer material_id
-        +String url
-        +String file_type
-    }
+## 2. ARQUITECTURA DEL SISTEMA
 
-    class Loan {
-        +Integer id
-        +Date start_date
-        +Date due_date
-        +Date return_date
-        +Enum status
-        +calculateFine()
-    }
-
-    class Fine {
-        +Integer id
-        +Decimal amount
-        +String reason
-        +Enum status
-        +pay()
-    }
-
-    User "1" --> "*" Loan : requests
-    User "1" --> "*" Fine : has
-    Material <|-- MaterialFisico : extends
-    Material <|-- MaterialDigital : extends
-    Loan "*" --> "1" Material : involves
-    Fine "1" --> "0..1" Loan : generated_from
+### Patrón MVC (Model-View-Controller)
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        USUARIO                               │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    ROUTES (web.php)                          │
+│  Define qué controlador maneja cada URL                     │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 MIDDLEWARE (Seguridad)                       │
+│  - Autenticación (auth)                                     │
+│  - Roles (role:Admin)                                       │
+│  - Permisos (permission:view_loans)                         │
+│  - Restricciones estudiante (student.restrictions)         │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    CONTROLLERS                               │
+│  - LoanController      → Préstamos                          │
+│  - MaterialController  → Materiales                         │
+│  - FineController      → Multas                             │
+│  - UserController      → Usuarios                           │
+│  - RepositoryController → Repositorio                       │
+│  - ReportController    → Reportes                           │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      MODELS (Eloquent)                       │
+│  - User, Prestamo, Material, Multa, etc.                    │
+│  - Relaciones: hasMany, belongsTo                           │
+│  - Reglas de negocio                                        │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    BASE DE DATOS                             │
+│  MySQL (local) / PostgreSQL (producción)                    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2. Diagrama de Base de Datos (Modelo Lógico/Físico)
+---
 
-El sistema utiliza una base de datos relacional (MySQL/MariaDB).
+## 3. ESTRUCTURA DE CARPETAS
 
-```mermaid
-erDiagram
-    USERS ||--o{ LOANS : "realiza"
-    USERS ||--o{ FINES : "tiene"
-    USERS ||--o{ RESERVATIONS : "hace"
+```
+iestp-ppd-biblioteca/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/           # Controladores
+│   │   │   ├── LoanController.php
+│   │   │   ├── MaterialController.php
+│   │   │   ├── FineController.php
+│   │   │   ├── UserController.php
+│   │   │   ├── RepositoryController.php
+│   │   │   └── ReportController.php
+│   │   └── Middleware/            # Filtros de seguridad
+│   │       ├── CheckRole.php
+│   │       ├── CheckPermission.php
+│   │       └── CheckStudentRestrictions.php
+│   ├── Livewire/                  # Componentes reactivos
+│   │   ├── AdminLoanManagement.php
+│   │   ├── LoanRequests.php
+│   │   ├── MaterialsList.php
+│   │   └── ...
+│   └── Models/                    # Modelos de datos
+│       ├── User.php
+│       ├── Prestamo.php
+│       ├── Material.php
+│       ├── Multa.php
+│       └── ...
+├── database/
+│   ├── migrations/                # Estructura de tablas
+│   └── seeders/                   # Datos iniciales
+├── resources/views/               # Vistas (HTML)
+│   ├── layouts/app.blade.php      # Layout principal
+│   ├── materials/                 # Vistas de materiales
+│   ├── loans/                     # Vistas de préstamos
+│   ├── fines/                     # Vistas de multas
+│   └── livewire/                  # Componentes Livewire
+└── routes/web.php                 # Rutas de la aplicación
+```
+
+---
+
+## 4. MODELOS Y BASE DE DATOS
+
+### Diagrama de Relaciones
+```
+┌──────────────┐       ┌──────────────┐       ┌──────────────┐
+│    USERS     │       │   PRESTAMOS  │       │  MATERIALS   │
+├──────────────┤       ├──────────────┤       ├──────────────┤
+│ id           │◄──────│ user_id      │       │ id           │
+│ name         │       │ material_id  │──────►│ title        │
+│ email        │       │ status       │       │ author       │
+│ role         │       │ fecha_prestamo│      │ code         │
+│ blocked_for_ │       │ fecha_devol  │       │ type         │
+│   loans      │       │ approval_    │       │ (fisico/     │
+└──────────────┘       │   status     │       │  digital)    │
+       │               └──────────────┘       └──────────────┘
+       │                      │                      │
+       │                      ▼                      │
+       │               ┌──────────────┐              │
+       │               │    MULTAS    │              │
+       │               ├──────────────┤              │
+       └──────────────►│ user_id      │              │
+                       │ prestamo_id  │◄─────────────┘
+                       │ monto        │
+                       │ status       │
+                       │ (pendiente/  │
+                       │  pagada/     │
+                       │  condonada)  │
+                       └──────────────┘
+```
+
+### Tablas Principales
+
+**users**
+- id, name, email, password
+- institutional_email
+- blocked_for_loans (boolean)
+- roles (relación con spatie/permission)
+
+**materials**
+- id, title, author, code, type, description
+- Relación con material_fisicos o material_digitales
+
+**prestamos**
+- id, user_id, material_id
+- status: 'activo', 'devuelto', 'pendiente_recogida', 'cancelado'
+- approval_status: 'pending', 'approved', 'collected', 'rejected', 'expired'
+- fecha_prestamo, fecha_devolucion_esperada, fecha_devolucion_actual
+
+**multas**
+- id, user_id, prestamo_id
+- monto, razon
+- status: 'pendiente', 'pagada', 'condonada'
+
+---
+
+## 5. SISTEMA DE ROLES Y PERMISOS
+
+### Roles
+| Rol | Descripción |
+|-----|-------------|
+| **Admin** | Acceso total al sistema |
+| **Trabajador** | Gestiona préstamos, multas, usuarios |
+| **Jefe_Area** | Solo puede subir documentos al repositorio |
+| **Estudiante** | Solicita préstamos, ve catálogo |
+
+### Permisos por Módulo
+```php
+// Materiales
+'view_materials', 'create_material', 'edit_material', 'delete_material'
+
+// Préstamos
+'view_loans', 'create_loan', 'approve_loan', 'return_loan', 'manage_loans'
+
+// Multas
+'view_fines', 'create_fine', 'manage_fines', 'forgive_fine'
+
+// Usuarios
+'view_users', 'create_user', 'edit_user', 'delete_user', 'manage_roles'
+
+// Repositorio
+'view_repository', 'submit_document', 'approve_document'
+```
+
+---
+
+## 6. FLUJOS DE TRABAJO PRINCIPALES
+
+### Flujo de Préstamo (Estudiante)
+```
+1. Estudiante solicita préstamo
+   └─► estado: 'pending' / approval_status: 'pending'
+
+2. Trabajador/Admin aprueba
+   └─► estado: 'pendiente_recogida' / approval_status: 'approved'
+   └─► Tiene 24 horas para recoger
+
+3. Estudiante recoge el libro (botón "Entregar")
+   └─► estado: 'activo' / approval_status: 'collected'
+   └─► Inician 7 días para devolver
+
+4. Estudiante devuelve (botón "Recibir")
+   └─► estado: 'devuelto' / approval_status: 'returned'
+   └─► Si hay retraso, se genera MULTA automáticamente
+```
+
+### Flujo de Préstamo (Admin directo)
+```
+1. Admin crea préstamo desde panel
+   └─► estado: 'activo' / approval_status: 'collected'
+   └─► El libro ya está entregado
+```
+
+### Flujo de Multas
+```
+1. Préstamo vencido → Multa automática (S/. 1 por día)
+2. Admin marca como "Pagada" o "Condonada"
+3. Si no hay más multas pendientes → Usuario desbloqueado automáticamente
+```
+
+### Flujo de Repositorio
+```
+Admin/Trabajador sube documento:
+└─► Se publica automáticamente (estado: 'publicado')
+
+Jefe de Área sube documento:
+└─► Queda pendiente (estado: 'pendiente')
+└─► Requiere aprobación de Admin
+```
+
+---
+
+## 7. COMPONENTES LIVEWIRE
+
+Livewire permite crear componentes interactivos sin escribir JavaScript.
+
+### AdminLoanManagement.php
+```php
+class AdminLoanManagement extends Component
+{
+    public $search = '';      // Búsqueda en tiempo real
+    public $filterStatus = ''; // Filtro por estado
     
-    MATERIALS ||--o{ LOANS : "es_prestado"
-    MATERIALS ||--|{ MATERIAL_FISICOS : "tiene_detalle"
-    MATERIALS ||--|{ MATERIAL_DIGITALS : "tiene_detalle"
-    MATERIALS ||--o{ RESERVATIONS : "es_reservado"
-
-    LOANS ||--o| FINES : "genera"
-
-    USERS {
-        bigint id PK
-        string name
-        string email
-        string password
-        string role
+    public function deliver($loanId)  // Entregar libro
+    public function receive($loanId)  // Recibir libro
+    public function cancel($loanId)   // Cancelar préstamo
+    
+    public function render()
+    {
+        // Consulta con filtros
+        $loans = Prestamo::query()
+            ->when($this->search, fn($q) => $q->where(...))
+            ->paginate(10);
+            
+        return view('livewire.admin-loan-management', compact('loans'));
     }
+}
+```
 
-    MATERIALS {
-        bigint id PK
-        string title
-        string author
-        string code
-        enum type "fisico, digital, hibrido"
-        string category
-    }
+### ¿Cómo funciona Livewire?
+1. Usuario escribe en input → `wire:model="search"`
+2. Laravel recibe el cambio
+3. Ejecuta `render()` con nueva data
+4. Actualiza solo la parte del HTML que cambió
 
-    MATERIAL_FISICOS {
-        bigint id PK
-        bigint material_id FK
-        integer stock
-        string location
-        string isbn
-    }
+---
 
-    MATERIAL_DIGITALS {
-        bigint id PK
-        bigint material_id FK
-        string url
-        string file_type
-    }
+## 8. MIDDLEWARE DE SEGURIDAD
 
-    LOANS {
-        bigint id PK
-        bigint user_id FK
-        bigint material_id FK
-        date fecha_prestamo
-        date fecha_devolucion_esperada
-        date fecha_devolucion_real
-        enum status "pendiente, activo, devuelto, vencido"
+### CheckRole.php
+```php
+public function handle($request, Closure $next, ...$roles)
+{
+    if (!auth()->user()->hasRole($roles)) {
+        abort(403); // Acceso denegado
     }
+    return $next($request);
+}
+```
 
-    FINES {
-        bigint id PK
-        bigint user_id FK
-        bigint prestamo_id FK "Nullable"
-        decimal monto
-        string razon
-        enum status "pendiente, pagada"
-    }
+### CheckStudentRestrictions.php
+```php
+// Si estudiante tiene multas pendientes o préstamos vencidos:
+// - Solo puede acceder a: catálogo, repositorio, multas
+// - No puede solicitar nuevos préstamos
 ```
 
 ---
 
-## 3. Diccionario de Datos
+## 9. CONTROLADORES PRINCIPALES
 
-A continuación se describen las tablas principales de la base de datos.
+### LoanController.php
+```php
+public function store(Request $request)
+{
+    // Validaciones
+    $user = User::find($request->user_id);
+    
+    // 1. ¿Usuario bloqueado?
+    if ($user->blocked_for_loans) {
+        return back()->withErrors('Usuario bloqueado');
+    }
+    
+    // 2. ¿Tiene multas pendientes?
+    if ($user->multas()->where('status', 'pendiente')->exists()) {
+        return back()->withErrors('Tiene multas pendientes');
+    }
+    
+    // 3. ¿Límite de préstamos? (máx 3)
+    if ($user->prestamos()->where('status', 'activo')->count() >= 3) {
+        return back()->withErrors('Máximo de préstamos alcanzado');
+    }
+    
+    // 4. Crear préstamo
+    if (auth()->user()->hasRole('Admin')) {
+        // Admin: préstamo directo (ya entregado)
+        $prestamo = Prestamo::create([
+            'status' => 'activo',
+            'approval_status' => 'collected',
+            'fecha_recogida' => now(),
+        ]);
+    } else {
+        // Estudiante: solicitud pendiente
+        $prestamo = Prestamo::create([
+            'status' => 'pendiente',
+            'approval_status' => 'pending',
+        ]);
+    }
+}
+```
 
-### Tabla: `users`
-Almacena la información de todos los usuarios del sistema.
+---
 
-| Campo | Tipo de Dato | Restricciones | Descripción |
-| :--- | :--- | :--- | :--- |
-| `id` | BIGINT | PK, AI | Identificador único del usuario. |
-| `name` | VARCHAR(255) | NOT NULL | Nombre completo del usuario. |
-| `email` | VARCHAR(255) | UNIQUE, NOT NULL | Correo electrónico institucional (login). |
-| `password` | VARCHAR(255) | NOT NULL | Contraseña encriptada (Hash). |
-| `created_at` | TIMESTAMP | NULL | Fecha de registro. |
+## 10. VISTAS Y BLADE
 
-### Tabla: `materials`
-Tabla maestra que contiene la información común de todos los libros y recursos.
+### Layout Principal (app.blade.php)
+```html
+<!-- Sidebar para Admin/Trabajador -->
+<nav>
+    <a href="/materials">📚 Materiales</a>
+    <a href="/loans">📖 Préstamos</a>
+    <a href="/fines">💰 Multas</a>
+    @if(auth()->user()->hasRole('Admin'))
+        <a href="/reports">📊 Reportes</a>
+    @endif
+</nav>
 
-| Campo | Tipo de Dato | Restricciones | Descripción |
-| :--- | :--- | :--- | :--- |
-| `id` | BIGINT | PK, AI | Identificador único del material. |
-| `code` | VARCHAR(50) | UNIQUE | Código interno de biblioteca (ej. LIB-001). |
-| `title` | VARCHAR(255) | NOT NULL | Título del libro o recurso. |
-| `author` | VARCHAR(255) | NOT NULL | Autor(es) del recurso. |
-| `type` | ENUM | 'fisico', 'digital', 'hibrido' | Tipo de material. |
-| `description` | TEXT | NULL | Sinopsis o descripción breve. |
+<!-- Contenido -->
+<main>
+    @yield('content')
+</main>
 
-### Tabla: `material_fisicos`
-Extensión de la tabla materials para atributos exclusivos de libros físicos.
+<!-- Alertas para estudiantes -->
+@if($hasOverdueLoans)
+    <div class="alert">⚠️ Tienes préstamos vencidos</div>
+@endif
+```
 
-| Campo | Tipo de Dato | Restricciones | Descripción |
-| :--- | :--- | :--- | :--- |
-| `id` | BIGINT | PK, AI | Identificador único. |
-| `material_id` | BIGINT | FK -> materials.id | Relación con el material padre. |
-| `stock` | INTEGER | DEFAULT 0 | Cantidad total de ejemplares. |
-| `available` | INTEGER | DEFAULT 0 | Cantidad disponible para préstamo. |
-| `location` | VARCHAR(100)| NULL | Ubicación física (Estante, Pasillo). |
+### Componente Livewire en vista
+```html
+<input wire:model.live="search" placeholder="Buscar...">
 
-### Tabla: `material_digitals`
-Extensión de la tabla materials para atributos exclusivos de recursos digitales.
+@foreach($loans as $loan)
+    <tr>
+        <td>{{ $loan->user->name }}</td>
+        <td>{{ $loan->material->title }}</td>
+        <td>
+            @if($loan->status === 'pendiente_recogida')
+                <button wire:click="deliver({{ $loan->id }})">
+                    Entregar
+                </button>
+            @endif
+        </td>
+    </tr>
+@endforeach
+```
 
-| Campo | Tipo de Dato | Restricciones | Descripción |
-| :--- | :--- | :--- | :--- |
-| `id` | BIGINT | PK, AI | Identificador único. |
-| `material_id` | BIGINT | FK -> materials.id | Relación con el material padre. |
-| `url` | VARCHAR(255) | NOT NULL | Enlace al recurso (PDF, Video). |
-| `file_type` | VARCHAR(10) | NULL | Tipo de archivo (pdf, epub, mp4). |
+---
 
-### Tabla: `loans` (Préstamos)
-Registra las transacciones de préstamo de materiales físicos.
+## 11. DESPLIEGUE
 
-| Campo | Tipo de Dato | Restricciones | Descripción |
-| :--- | :--- | :--- | :--- |
-| `id` | BIGINT | PK, AI | Identificador del préstamo. |
-| `user_id` | BIGINT | FK -> users.id | Usuario que solicita el préstamo. |
-| `material_id` | BIGINT | FK -> materials.id | Material prestado. |
-| `fecha_prestamo` | DATE | NOT NULL | Fecha de inicio del préstamo. |
-| `fecha_devolucion_esperada`| DATE | NOT NULL | Fecha límite para devolver. |
-| `status` | ENUM | 'pendiente', 'activo', 'devuelto' | Estado actual del préstamo. |
+### Docker (docker-compose.yml)
+```yaml
+services:
+  app:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      - DB_CONNECTION=pgsql
+      - DATABASE_URL=...
+    depends_on:
+      - db
+  
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=biblioteca
+```
 
-### Tabla: `fines` (Multas)
-Registra las sanciones monetarias aplicadas a los usuarios.
+### Variables de Entorno (.env)
+```
+APP_NAME="Biblioteca Pedro P. Díaz"
+APP_ENV=production
+APP_DEBUG=false
+DB_CONNECTION=mysql  # o pgsql
+DB_HOST=localhost
+DB_DATABASE=biblioteca
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-| Campo | Tipo de Dato | Restricciones | Descripción |
-| :--- | :--- | :--- | :--- |
-| `id` | BIGINT | PK, AI | Identificador de la multa. |
-| `user_id` | BIGINT | FK -> users.id | Usuario sancionado. |
-| `monto` | DECIMAL(8,2)| NOT NULL | Monto a pagar (S/.). |
-| `razon` | VARCHAR(255)| NOT NULL | Motivo (Retraso, Daño, Pérdida). |
-| `status` | ENUM | 'pendiente', 'pagada' | Estado del pago de la multa. |
+---
+
+## 12. COMANDOS ÚTILES
+
+```bash
+# Desarrollo local
+php artisan serve              # Iniciar servidor
+php artisan migrate            # Ejecutar migraciones
+php artisan db:seed            # Ejecutar seeders
+
+# Cache
+php artisan config:clear
+php artisan cache:clear
+php artisan view:clear
+
+# Permisos
+php artisan permission:cache-reset
+
+# Docker
+docker-compose up --build      # Levantar contenedores
+docker-compose down            # Detener contenedores
+```
+
+---
+
+## 13. CREDENCIALES DE PRUEBA
+
+| Usuario | Email | Contraseña | Rol |
+|---------|-------|------------|-----|
+| Admin | admin@iestp.edu.pe | password | Admin |
+| Trabajador | trabajador@iestp.edu.pe | password | Trabajador |
+| Estudiante | estudiante@iestp.edu.pe | password | Estudiante |
+| Jefe | jefe@iestp.edu.pe | password | Jefe_Area |
+
+---
+
+## 14. PREGUNTAS FRECUENTES
+
+### ¿Cómo funciona la autenticación?
+Laravel usa **sessions** y **cookies**. El usuario inicia sesión con email/password, se crea una sesión, y se usa el middleware `auth` para proteger rutas.
+
+### ¿Cómo se generan las multas automáticamente?
+En el modelo `Prestamo`, hay un método `calcularMultaPorRetraso()` que calcula S/. 1.00 por cada día de retraso. Se llama cuando se devuelve un libro tardío.
+
+### ¿Por qué usamos Livewire en lugar de Vue/React?
+Livewire permite crear interfaces interactivas usando solo PHP y Blade, sin necesidad de API REST ni JavaScript complejo. Es más rápido para desarrollar y más fácil de mantener.
+
+### ¿Cómo funciona el sistema de permisos?
+Usamos **Spatie Laravel Permission**. Los usuarios tienen roles, y los roles tienen permisos. En las rutas usamos `->middleware('permission:nombre_permiso')` para proteger acceso.
+
+---
+
+**Autor:** Sistema generado con Laravel 12  
+**Fecha:** Diciembre 2024
