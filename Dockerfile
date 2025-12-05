@@ -1,7 +1,7 @@
 # Imagen base PHP con Apache
 FROM php:8.2-apache
 
-# Instalar extensiones PHP necesarias
+# Instalar extensiones PHP necesarias (incluyendo zip)
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -9,11 +9,12 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     libpq-dev \
+    libzip-dev \
     zip \
     unzip \
     nodejs \
     npm \
-    && docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd \
+    && docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Habilitar mod_rewrite para Laravel
