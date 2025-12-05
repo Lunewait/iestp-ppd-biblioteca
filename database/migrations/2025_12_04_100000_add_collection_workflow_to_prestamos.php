@@ -5,8 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      * 
@@ -27,7 +26,7 @@ return new class extends Migration
 
         // Actualizar los estados de approval_status
         $driver = DB::connection()->getDriverName();
-        
+
         if ($driver === 'mysql') {
             DB::statement("
                 ALTER TABLE prestamos 
@@ -38,6 +37,8 @@ return new class extends Migration
         } elseif ($driver === 'pgsql') {
             // PostgreSQL: necesitamos recrear el tipo
             DB::statement("ALTER TABLE prestamos ALTER COLUMN approval_status TYPE VARCHAR(20)");
+            // Primero eliminar constraint si existe
+            DB::statement("ALTER TABLE prestamos DROP CONSTRAINT IF EXISTS prestamos_approval_status_check");
             DB::statement("
                 ALTER TABLE prestamos 
                 ADD CONSTRAINT prestamos_approval_status_check 
@@ -56,7 +57,7 @@ return new class extends Migration
         });
 
         $driver = DB::connection()->getDriverName();
-        
+
         if ($driver === 'mysql') {
             DB::statement("
                 ALTER TABLE prestamos 
