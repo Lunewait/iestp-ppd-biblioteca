@@ -63,6 +63,12 @@ class LoanController extends Controller
             'fecha_devolucion_esperada' => 'required|date|after:today',
         ]);
 
+        // Check if user is blocked
+        $user = User::find($validated['user_id']);
+        if ($user->blocked_for_loans) {
+            return back()->with('error', 'El usuario está bloqueado para préstamos. Motivo: ' . ($user->blocked_reason ?? 'Cuenta bloqueada'));
+        }
+
         $material = Material::find($validated['material_id']);
 
         // Check if material is available
@@ -76,7 +82,11 @@ class LoanController extends Controller
             ->sum('monto');
 
         if ($unpaidFines > 0) {
-            return back()->with('error', "Usuario tiene multas pendientes por \${$unpaidFines}");
+            // Auto-block user if they have fines
+            if (!$user->blocked_for_loans) {
+                $user->blockLoans("Multas pendientes por S/. {$unpaidFines}");
+            }
+            return back()->with('error', "Usuario tiene multas pendientes por S/. {$unpaidFines} y ha sido bloqueado.");
         }
 
         $loan = Prestamo::create([
@@ -151,6 +161,10 @@ class LoanController extends Controller
                 'status' => 'pendiente',
                 'registrado_por' => auth()->id(),
             ]);
+
+            // Auto-block user due to fine
+            $user = User::find($loan->user_id);
+            $user->blockLoans("Multa generada por devolución tardía ({$daysLate} días de retraso)");
         }
 
         return redirect()->route('loans.show', $loan)

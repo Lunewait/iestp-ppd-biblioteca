@@ -74,6 +74,11 @@ class ReservationController extends Controller
     {
         $this->authorize('create_reservation');
 
+        // Check if user is blocked from requesting loans
+        if (auth()->user()->blocked_for_loans) {
+            return back()->with('error', 'No puedes solicitar préstamos. Motivo: ' . (auth()->user()->blocked_reason ?? 'Cuenta bloqueada. Contacta con la biblioteca.'));
+        }
+
         $validated = $request->validate([
             'material_id' => 'required|exists:materials,id',
             'fecha_reserva_esperada' => 'required|date|after:today',

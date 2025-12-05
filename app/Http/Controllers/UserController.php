@@ -23,8 +23,8 @@ class UserController extends Controller
         if ($request->search) {
             $search = $request->search;
             $query->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('institutional_email', 'like', "%{$search}%");
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('institutional_email', 'like', "%{$search}%");
         }
 
         // Filter by role
@@ -33,7 +33,7 @@ class UserController extends Controller
         }
 
         $users = $query->with('roles')
-                      ->paginate(15);
+            ->paginate(15);
 
         $roles = Role::all();
 
@@ -77,7 +77,7 @@ class UserController extends Controller
         $user->assignRole($validated['role']);
 
         return redirect()->route('users.show', $user)
-                       ->with('success', 'Usuario creado exitosamente');
+            ->with('success', 'Usuario creado exitosamente');
     }
 
     /**
@@ -133,7 +133,7 @@ class UserController extends Controller
         $user->syncRoles([$validated['role']]);
 
         return redirect()->route('users.show', $user)
-                       ->with('success', 'Usuario actualizado exitosamente');
+            ->with('success', 'Usuario actualizado exitosamente');
     }
 
     /**
@@ -151,7 +151,7 @@ class UserController extends Controller
         $user->delete();
 
         return redirect()->route('users.index')
-                       ->with('success', 'Usuario eliminado exitosamente');
+            ->with('success', 'Usuario eliminado exitosamente');
     }
 
     /**
@@ -168,6 +168,34 @@ class UserController extends Controller
         $user->syncRoles([$validated['role']]);
 
         return redirect()->route('users.show', $user)
-                       ->with('success', 'Rol actualizado exitosamente');
+            ->with('success', 'Rol actualizado exitosamente');
+    }
+
+    /**
+     * Block user from requesting loans.
+     */
+    public function block(Request $request, User $user)
+    {
+        $this->authorize('edit_user');
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:255',
+        ]);
+
+        $user->blockLoans($validated['reason']);
+
+        return back()->with('success', 'Usuario bloqueado para préstamos exitosamente');
+    }
+
+    /**
+     * Unblock user to allow loan requests.
+     */
+    public function unblock(User $user)
+    {
+        $this->authorize('edit_user');
+
+        $user->unblockLoans();
+
+        return back()->with('success', 'Usuario desbloqueado exitosamente');
     }
 }

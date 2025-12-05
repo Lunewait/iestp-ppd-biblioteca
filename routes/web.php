@@ -98,6 +98,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('users/import/process', [App\Http\Controllers\UserImportController::class, 'import'])->name('users.import.process')->middleware('permission:create_user');
     Route::get('users/import/template', [App\Http\Controllers\UserImportController::class, 'downloadTemplate'])->name('users.import.template')->middleware('permission:create_user');
 
+    // Block/Unblock routes
+    Route::post('users/{user}/block', [UserController::class, 'block'])->name('users.block')->middleware('permission:edit_user');
+    Route::post('users/{user}/unblock', [UserController::class, 'unblock'])->name('users.unblock')->middleware('permission:edit_user');
+
     // User CRUD (rutas específicas ANTES de rutas con parámetros)
     Route::get('users/create', [UserController::class, 'create'])->name('users.create')->middleware('permission:create_user');
     Route::post('users', [UserController::class, 'store'])->name('users.store')->middleware('permission:create_user');

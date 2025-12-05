@@ -23,6 +23,8 @@ class User extends Authenticatable
         'email',
         'institutional_email',
         'password',
+        'blocked_for_loans',
+        'blocked_reason',
     ];
 
     /**
@@ -45,6 +47,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'blocked_for_loans' => 'boolean',
         ];
     }
 
@@ -94,10 +97,10 @@ class User extends Authenticatable
     public function getOverdueLoans()
     {
         return $this->prestamos()
-                    ->where('status', 'activo')
-                    ->where('fecha_devolucion_esperada', '<', now())
-                    ->with('material')
-                    ->get();
+            ->where('status', 'activo')
+            ->where('fecha_devolucion_esperada', '<', now())
+            ->with('material')
+            ->get();
     }
 
     /**
@@ -161,5 +164,35 @@ class User extends Authenticatable
             'active_reservations' => $this->getActiveReservations()->count(),
             'has_unpaid_fines' => $this->hasUnpaidFines(),
         ];
+    }
+
+    /**
+     * Check if user can request loans
+     */
+    public function canRequestLoans()
+    {
+        return !$this->blocked_for_loans;
+    }
+
+    /**
+     * Block user from requesting loans
+     */
+    public function blockLoans($reason = 'Multas pendientes')
+    {
+        $this->update([
+            'blocked_for_loans' => true,
+            'blocked_reason' => $reason,
+        ]);
+    }
+
+    /**
+     * Unblock user to allow loan requests
+     */
+    public function unblockLoans()
+    {
+        $this->update([
+            'blocked_for_loans' => false,
+            'blocked_reason' => null,
+        ]);
     }
 }
