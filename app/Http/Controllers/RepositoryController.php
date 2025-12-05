@@ -80,6 +80,13 @@ class RepositoryController extends Controller
         $filename = now()->timestamp . '_' . $file->getClientOriginalName();
         $path = $file->storeAs('documents/submissions', $filename, 'private');
 
+        $user = auth()->user();
+        $isAdmin = $user->hasRole('Admin');
+
+        // Admin y Trabajador: auto-aprobado
+        // Jefe de Área: necesita aprobación del Admin
+        $estado = $isAdmin || $user->hasRole('Trabajador') ? 'publicado' : 'pendiente';
+
         $documento = RepositorioDocumento::create([
             'user_id' => auth()->id(),
             'titulo' => $validated['titulo'],
@@ -90,21 +97,28 @@ class RepositoryController extends Controller
             'file_original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),
             'file_size' => $file->getSize(),
-            'estado' => 'pendiente',
+            'estado' => $estado,
+            'fecha_aprobacion' => $estado === 'publicado' ? now() : null,
         ]);
 
-        // Create approval records for all area heads
-        $jefeAreas = User::role('Jefe_Area')->get();
-        foreach ($jefeAreas as $jefe) {
-            Aprobacion::create([
-                'documento_id' => $documento->id,
-                'jefe_area_id' => $jefe->id,
-                'estado' => 'pendiente',
-            ]);
+        // Solo crear aprobación si es Jefe de Área (necesita aprobación del Admin)
+        if ($user->hasRole('Jefe_Area')) {
+            // Crear registro de aprobación para Admin
+            $admins = User::role('Admin')->get();
+            foreach ($admins as $admin) {
+                Aprobacion::create([
+                    'documento_id' => $documento->id,
+                    'jefe_area_id' => $admin->id, // Admin aprueba
+                    'estado' => 'pendiente',
+                ]);
+            }
+
+            return redirect()->route('repository.show', $documento)
+                ->with('success', 'Documento enviado. Esperando aprobación del administrador.');
         }
 
         return redirect()->route('repository.show', $documento)
-            ->with('success', 'Documento enviado para aprobación');
+            ->with('success', 'Documento publicado exitosamente');
     }
 
     /**

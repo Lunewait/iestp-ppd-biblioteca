@@ -60,35 +60,39 @@ class MaterialController extends Controller
             'title' => 'required|string|max:255',
             'author' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'type' => 'required|in:fisico,digital,hibrido',
+            'type' => 'required|in:fisico,digital',
             'code' => 'required|unique:materials,code',
             'keywords' => 'nullable|string',
             // Validaciones condicionales
-            'url' => 'required_if:type,digital,hibrido|nullable|url',
-            'stock' => 'required_if:type,fisico,hibrido|nullable|integer|min:0',
+            'url' => 'required_if:type,digital|nullable|url',
+            'stock' => 'required_if:type,fisico|nullable|integer|min:1',
+            'isbn' => 'nullable|string|max:50',
+            'publisher' => 'nullable|string|max:255',
+            'publication_year' => 'nullable|integer|min:1900|max:' . date('Y'),
+            'location' => 'nullable|string|max:255',
         ]);
 
         $material = Material::create($validated);
 
-        if ($request->type === 'fisico' || $request->type === 'hibrido') {
+        if ($request->type === 'fisico') {
             MaterialFisico::create([
                 'material_id' => $material->id,
                 'isbn' => $request->isbn,
-                'stock' => $request->stock ?? 0,
-                'available' => $request->stock ?? 0,
+                'stock' => $request->stock ?? 1,
+                'available' => $request->stock ?? 1,
                 'publisher' => $request->publisher,
                 'publication_year' => $request->publication_year,
                 'location' => $request->location,
             ]);
         }
 
-        if ($request->type === 'digital' || $request->type === 'hibrido') {
+        if ($request->type === 'digital') {
             MaterialDigital::create([
                 'material_id' => $material->id,
                 'url' => $request->url,
-                'downloadable' => $request->has('downloadable'),
-                'file_type' => $request->file_type,
-                'license' => $request->license,
+                'downloadable' => false,
+                'file_type' => 'web',
+                'license' => 'Gratuito',
             ]);
         }
 

@@ -11,45 +11,60 @@ class MaterialSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     * Solo materiales físicos y digitales (sin híbridos)
      */
     public function run(): void
     {
-        // Materiales Físicos
+        // Materiales Físicos (para préstamo)
         $materialesFisicos = [
             [
                 'title' => 'Clean Code',
                 'author' => 'Robert C. Martin',
                 'code' => 'CC-001',
                 'type' => 'fisico',
-                'description' => 'A Handbook of Agile Software Craftsmanship',
+                'description' => 'Manual de desarrollo de software ágil. Este libro es una guía completa para escribir código limpio y mantenible.',
             ],
             [
                 'title' => 'Design Patterns',
                 'author' => 'Gang of Four',
                 'code' => 'DP-002',
                 'type' => 'fisico',
-                'description' => 'Elements of Reusable Object-Oriented Software',
+                'description' => 'Elementos de software orientado a objetos reutilizable. Patrones de diseño clásicos.',
             ],
             [
                 'title' => 'The Pragmatic Programmer',
                 'author' => 'Andrew Hunt, David Thomas',
                 'code' => 'PP-003',
                 'type' => 'fisico',
-                'description' => 'Your Journey to Mastery',
+                'description' => 'Tu viaje hacia la maestría en programación. Consejos prácticos para desarrolladores.',
             ],
             [
                 'title' => 'Refactoring',
                 'author' => 'Martin Fowler',
                 'code' => 'RF-004',
                 'type' => 'fisico',
-                'description' => 'Improving the Design of Existing Code',
+                'description' => 'Mejorando el diseño de código existente. Técnicas de refactorización.',
             ],
             [
-                'title' => 'The Art of Computer Programming',
-                'author' => 'Donald Knuth',
-                'code' => 'ACP-005',
+                'title' => 'Estructura de Datos y Algoritmos',
+                'author' => 'Thomas H. Cormen',
+                'code' => 'EDA-005',
                 'type' => 'fisico',
-                'description' => 'Fundamental Algorithms',
+                'description' => 'Introducción a los algoritmos. Texto fundamental de ciencias de la computación.',
+            ],
+            [
+                'title' => 'Fundamentos de Bases de Datos',
+                'author' => 'Abraham Silberschatz',
+                'code' => 'FBD-006',
+                'type' => 'fisico',
+                'description' => 'Conceptos de sistemas de bases de datos relacionales y NoSQL.',
+            ],
+            [
+                'title' => 'Ingeniería de Software',
+                'author' => 'Ian Sommerville',
+                'code' => 'IS-007',
+                'type' => 'fisico',
+                'description' => 'Principios y prácticas de ingeniería de software moderna.',
             ],
         ];
 
@@ -59,54 +74,86 @@ class MaterialSeeder extends Seeder
             // Crear detalles físicos
             MaterialFisico::create([
                 'material_id' => $material->id,
-                'isbn' => '978-' . rand(1000000000000, 9999999999999),
-                'publisher' => 'Prentice Hall',
-                'publication_year' => rand(2000, 2024),
-                'stock' => rand(3, 10),
-                'available' => rand(1, 5),
+                'isbn' => '978-' . rand(1000000000, 9999999999),
+                'publisher' => 'Editorial Técnica',
+                'publication_year' => rand(2018, 2024),
+                'stock' => 3,
+                'available' => 3,
                 'location' => 'Estante ' . chr(65 + rand(0, 5)) . '-' . rand(1, 10),
             ]);
         }
 
-        // Materiales Digitales
+        // Materiales Digitales (lectura en línea gratuita)
         $materialesDigitales = [
             [
-                'title' => 'Laravel Documentation',
-                'author' => 'Laravel Community',
-                'code' => 'LD-006',
+                'title' => 'Eloquent JavaScript',
+                'author' => 'Marijn Haverbeke',
+                'code' => 'EJS-D01',
                 'type' => 'digital',
-                'description' => 'Official Laravel Framework Documentation',
-                'url' => 'https://media.readthedocs.org/pdf/laravel/latest/laravel.pdf', // PDF Real (ejemplo)
+                'description' => 'Introducción moderna a la programación con JavaScript. Libro completo disponible en línea.',
+                'url' => 'https://eloquentjavascript.net/',
             ],
             [
-                'title' => 'PHP: The Right Way',
-                'author' => 'Josh Lockhart',
-                'code' => 'PHP-007',
-                'type' => 'digital',
-                'description' => 'A PHP Best Practices Quick Reference',
-                'url' => 'https://pubs.opengroup.org/onlinepubs/009695399/download/susv3.pdf', // Placeholder técnico
-            ],
-            [
-                'title' => 'JavaScript: The Definitive Guide',
-                'author' => 'David Flanagan',
-                'code' => 'JS-008',
-                'type' => 'digital',
-                'description' => 'Master the World\'s Most-Used Programming Language',
-                'url' => 'https://eloquentjavascript.net/Eloquent_JavaScript.pdf', // Eloquent JS PDF
-            ],
-            [
-                'title' => 'You Don\'t Know JS',
+                'title' => 'You Don\'t Know JS Yet',
                 'author' => 'Kyle Simpson',
-                'code' => 'YDKJS-009',
+                'code' => 'YDKJS-D02',
                 'type' => 'digital',
-                'description' => 'A Book Series on JavaScript',
-                'url' => 'https://github.com/getify/You-Dont-Know-JS/raw/1st-ed/up%20&%20going/ch1.md', // Enlace directo a contenido (simulado)
+                'description' => 'Serie de libros que profundizan en los mecanismos del lenguaje JavaScript.',
+                'url' => 'https://github.com/getify/You-Dont-Know-JS',
+            ],
+            [
+                'title' => 'Pro Git',
+                'author' => 'Scott Chacon',
+                'code' => 'GIT-D03',
+                'type' => 'digital',
+                'description' => 'Todo sobre el control de versiones con Git. Libro oficial y completo.',
+                'url' => 'https://git-scm.com/book/es/v2',
+            ],
+            [
+                'title' => 'Think Python',
+                'author' => 'Allen B. Downey',
+                'code' => 'TP-D04',
+                'type' => 'digital',
+                'description' => 'Cómo pensar como un programador. Introducción a Python.',
+                'url' => 'https://greenteapress.com/thinkpython2/html/index.html',
+            ],
+            [
+                'title' => 'Learn PHP in Y Minutes',
+                'author' => 'Comunidad Open Source',
+                'code' => 'PHP-D05',
+                'type' => 'digital',
+                'description' => 'Referencia rápida de PHP para desarrolladores.',
+                'url' => 'https://learnxinyminutes.com/docs/php/',
+            ],
+            [
+                'title' => 'MDN Web Docs - HTML',
+                'author' => 'Mozilla Foundation',
+                'code' => 'HTML-D06',
+                'type' => 'digital',
+                'description' => 'Documentación completa de HTML, CSS y JavaScript.',
+                'url' => 'https://developer.mozilla.org/es/docs/Web/HTML',
+            ],
+            [
+                'title' => 'The Linux Command Line',
+                'author' => 'William Shotts',
+                'code' => 'LINUX-D07',
+                'type' => 'digital',
+                'description' => 'Guía completa para usar la línea de comandos de Linux.',
+                'url' => 'https://linuxcommand.org/tlcl.php',
+            ],
+            [
+                'title' => 'SQL Tutorial',
+                'author' => 'W3Schools',
+                'code' => 'SQL-D08',
+                'type' => 'digital',
+                'description' => 'Tutorial interactivo de SQL para bases de datos.',
+                'url' => 'https://www.w3schools.com/sql/',
             ],
         ];
 
         foreach ($materialesDigitales as $data) {
             $url = $data['url'];
-            unset($data['url']); // Remove URL from main material data
+            unset($data['url']);
 
             $material = Material::create($data);
 
@@ -114,49 +161,10 @@ class MaterialSeeder extends Seeder
             MaterialDigital::create([
                 'material_id' => $material->id,
                 'url' => $url,
-                'file_type' => 'pdf',
-                'license' => 'Creative Commons',
-            ]);
-        }
-
-        // Materiales Híbridos
-        $materialesHibridos = [
-            [
-                'title' => 'Web Development Masterclass',
-                'author' => 'Various Instructors',
-                'code' => 'WDM-010',
-                'type' => 'hibrido',
-                'description' => 'Complete Web Development Course with Materials',
-            ],
-            [
-                'title' => 'Database Design Fundamentals',
-                'author' => 'C.J. Date',
-                'code' => 'DDF-011',
-                'type' => 'hibrido',
-                'description' => 'With Digital Supplements',
-            ],
-        ];
-
-        foreach ($materialesHibridos as $data) {
-            $material = Material::create($data);
-
-            // Crear detalles físicos para híbrido
-            MaterialFisico::create([
-                'material_id' => $material->id,
-                'isbn' => '978-' . rand(1000000000000, 9999999999999),
-                'publisher' => 'Tech Books',
-                'publication_year' => rand(2020, 2024),
-                'stock' => rand(2, 5),
-                'available' => rand(1, 3),
-                'location' => 'Estante H-' . rand(1, 5),
-            ]);
-
-            // Crear detalles digitales para híbrido
-            MaterialDigital::create([
-                'material_id' => $material->id,
-                'url' => 'https://example.com/hybrid-' . $material->id,
-                'file_type' => 'pdf',
-                'license' => 'Commercial',
+                'file_type' => 'web',
+                'license' => 'Gratuito',
+                'downloadable' => false,
+                'access_count' => rand(10, 200),
             ]);
         }
     }

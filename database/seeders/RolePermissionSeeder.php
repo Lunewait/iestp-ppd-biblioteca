@@ -76,6 +76,7 @@ class RolePermissionSeeder extends Seeder
         $studentRole->syncPermissions([
             'view_materials',
             'view_loans',
+            'create_loan',
             'create_reservation',
             'view_reservations',
             'view_repository',
@@ -104,8 +105,7 @@ class RolePermissionSeeder extends Seeder
         $jefaAreaRole->syncPermissions([
             'view_materials',
             'view_repository',
-            'approve_document',
-            'submit_document',
+            'submit_document', // Solo puede subir, NO aprobar
         ]);
 
         $adminRole = Role::firstOrCreate(['name' => 'Admin']);

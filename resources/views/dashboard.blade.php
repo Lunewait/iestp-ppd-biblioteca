@@ -16,6 +16,47 @@
             <div class="absolute bottom-0 right-20 -mb-16 h-40 w-40 rounded-full bg-blue-400 opacity-20 blur-xl"></div>
         </div>
 
+        {{-- Mensaje de Deudas Pendientes --}}
+        @php
+            $pendingFines = Auth::user()->multas()->where('status', 'pendiente')->sum('monto');
+            $isBlocked = Auth::user()->blocked_for_loans;
+        @endphp
+
+        @if($pendingFines > 0 || $isBlocked)
+            <div class="bg-red-50 border-l-4 border-red-500 rounded-lg p-6 shadow-md">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <svg class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-bold text-red-800">⚠️ Tienes Deudas Pendientes</h3>
+                        <div class="mt-2 text-red-700">
+                            <p class="font-semibold text-xl">Total: S/. {{ number_format($pendingFines, 2) }}</p>
+                            <p class="mt-2 text-sm">
+                                <strong>Debes acercarte a la biblioteca para pagar tu multa.</strong><br>
+                                @if($isBlocked)
+                                    Tu cuenta está bloqueada para préstamos hasta que regularices tu situación.
+                                @endif
+                            </p>
+                            <p class="mt-3 text-sm text-red-600">
+                                📖 Solo tienes acceso a <strong>libros digitales</strong> y al <strong>repositorio</strong>
+                                hasta pagar tus deudas.
+                            </p>
+                        </div>
+                        <div class="mt-4">
+                            <a href="{{ route('fines.index') }}"
+                                class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition shadow-sm">
+                                Ver mis multas
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <!-- Componente de Estadísticas Livewire -->
         <livewire:dashboard-stats />
 

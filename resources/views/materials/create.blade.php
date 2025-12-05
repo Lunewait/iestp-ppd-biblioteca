@@ -1,5 +1,13 @@
 @extends('layouts.app')
 
+@php
+    // Generar código automático
+    $year = date('Y');
+    $lastMaterial = \App\Models\Material::orderBy('id', 'desc')->first();
+    $nextNumber = $lastMaterial ? $lastMaterial->id + 1 : 1;
+    $autoCode = 'LIB-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT) . '-' . $year;
+@endphp
+
 @section('content')
     <div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-3xl mx-auto">
@@ -23,21 +31,13 @@
                         </div>
                     </div>
                 </div>
-                @php
-                    /** @var \Illuminate\Support\ViewErrorBag $errors */
-                @endphp
+
                 <div class="p-8">
                     @if ($errors->any())
                         <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
                             <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div class="ml-3">
+                                <div class="text-red-400 mr-3">⚠️</div>
+                                <div>
                                     <h3 class="text-sm font-medium text-red-800">Se encontraron errores:</h3>
                                     <ul class="mt-1 list-disc list-inside text-sm text-red-700">
                                         @foreach ($errors->all() as $error)
@@ -55,44 +55,30 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <!-- Título -->
                             <div class="md:col-span-2">
-                                <label for="title" class="block text-sm font-semibold text-gray-700 mb-1">Título del
+                                <label for="title" class="block text-sm font-semibold text-gray-700 mb-1">📚 Título del
                                     Material</label>
-                                <div class="relative rounded-md shadow-sm">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span class="text-gray-500 sm:text-sm">📚</span>
-                                    </div>
-                                    <input type="text" name="title" id="title"
-                                        class="pl-10 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition sm:text-sm py-2.5"
-                                        placeholder="Ej: Clean Code: A Handbook of Agile Software Craftsmanship"
-                                        value="{{ old('title') }}" required>
-                                </div>
+                                <input type="text" name="title" id="title"
+                                    class="block w-full rounded-xl border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition py-2.5 px-4"
+                                    placeholder="Ej: Clean Code: A Handbook of Agile Software Craftsmanship"
+                                    value="{{ old('title') }}" required>
                             </div>
 
                             <!-- Autor -->
                             <div>
-                                <label for="author" class="block text-sm font-semibold text-gray-700 mb-1">Autor</label>
-                                <div class="relative rounded-md shadow-sm">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span class="text-gray-500 sm:text-sm">✍️</span>
-                                    </div>
-                                    <input type="text" name="author" id="author"
-                                        class="pl-10 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition sm:text-sm py-2.5"
-                                        placeholder="Ej: Robert C. Martin" value="{{ old('author') }}" required>
-                                </div>
+                                <label for="author" class="block text-sm font-semibold text-gray-700 mb-1">✍️ Autor</label>
+                                <input type="text" name="author" id="author"
+                                    class="block w-full rounded-xl border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition py-2.5 px-4"
+                                    placeholder="Ej: Robert C. Martin" value="{{ old('author') }}" required>
                             </div>
 
-                            <!-- Código -->
+                            <!-- Código (Auto-generado) -->
                             <div>
-                                <label for="code" class="block text-sm font-semibold text-gray-700 mb-1">Código de
+                                <label for="code" class="block text-sm font-semibold text-gray-700 mb-1">🔢 Código de
                                     Inventario</label>
-                                <div class="relative rounded-md shadow-sm">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span class="text-gray-500 sm:text-sm">🔢</span>
-                                    </div>
-                                    <input type="text" name="code" id="code"
-                                        class="pl-10 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition sm:text-sm py-2.5"
-                                        placeholder="Ej: LIB-001-2025" value="{{ old('code') }}" required>
-                                </div>
+                                <input type="text" name="code" id="code"
+                                    class="block w-full rounded-xl border-gray-300 bg-gray-100 focus:ring-blue-500 focus:border-blue-500 transition py-2.5 px-4"
+                                    value="{{ old('code', $autoCode) }}" required readonly>
+                                <p class="mt-1 text-xs text-gray-500">Generado automáticamente</p>
                             </div>
                         </div>
 
@@ -101,15 +87,13 @@
                             <label for="type" class="block text-sm font-semibold text-gray-700 mb-2">Tipo de
                                 Material</label>
                             <select name="type" id="type"
-                                class="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-lg transition"
+                                class="block w-full px-4 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-xl transition"
                                 required onchange="toggleFields()">
                                 <option value="">Seleccione una opción...</option>
                                 <option value="fisico" {{ old('type') === 'fisico' ? 'selected' : '' }}>📘 Físico (Libro
                                     impreso)</option>
                                 <option value="digital" {{ old('type') === 'digital' ? 'selected' : '' }}>💻 Digital
                                     (PDF/E-book)</option>
-                                <option value="hibrido" {{ old('type') === 'hibrido' ? 'selected' : '' }}>🔄 Híbrido (Ambos)
-                                </option>
                             </select>
                         </div>
 
@@ -117,27 +101,45 @@
                         <div id="physical_fields" class="hidden transform transition-all duration-300 ease-in-out">
                             <div class="bg-blue-50 rounded-xl p-6 border border-blue-100 space-y-4">
                                 <h3 class="font-bold text-blue-900 flex items-center gap-2">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
-                                        </path>
-                                    </svg>
-                                    Detalles del Material Físico
+                                    📚 Detalles del Material Físico
                                 </h3>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="isbn" class="block text-sm font-medium text-blue-800 mb-1">ISBN</label>
+                                        <input type="text" name="isbn" id="isbn"
+                                            class="block w-full rounded-lg border-blue-200 focus:ring-blue-500 focus:border-blue-500 py-2 px-3"
+                                            placeholder="Ej: 978-0132350884" value="{{ old('isbn', '978-000-000-0000') }}">
+                                    </div>
+                                    <div>
+                                        <label for="publisher"
+                                            class="block text-sm font-medium text-blue-800 mb-1">Editorial</label>
+                                        <input type="text" name="publisher" id="publisher"
+                                            class="block w-full rounded-lg border-blue-200 focus:ring-blue-500 focus:border-blue-500 py-2 px-3"
+                                            placeholder="Ej: Prentice Hall"
+                                            value="{{ old('publisher', 'Editorial IESTP') }}">
+                                    </div>
+                                    <div>
+                                        <label for="publication_year"
+                                            class="block text-sm font-medium text-blue-800 mb-1">Año de Publicación</label>
+                                        <input type="number" name="publication_year" id="publication_year"
+                                            class="block w-full rounded-lg border-blue-200 focus:ring-blue-500 focus:border-blue-500 py-2 px-3"
+                                            value="{{ old('publication_year', date('Y')) }}" min="1900"
+                                            max="{{ date('Y') }}">
+                                    </div>
                                     <div>
                                         <label for="stock" class="block text-sm font-medium text-blue-800 mb-1">Stock
                                             Disponible</label>
                                         <input type="number" name="stock" id="stock"
-                                            class="block w-full rounded-lg border-blue-200 focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2"
-                                            value="{{ old('stock', 1) }}" min="0">
+                                            class="block w-full rounded-lg border-blue-200 focus:ring-blue-500 focus:border-blue-500 py-2 px-3"
+                                            value="{{ old('stock', 1) }}" min="1">
                                     </div>
-                                    <div>
-                                        <label for="location"
-                                            class="block text-sm font-medium text-blue-800 mb-1">Ubicación</label>
+                                    <div class="md:col-span-2">
+                                        <label for="location" class="block text-sm font-medium text-blue-800 mb-1">Ubicación
+                                            en Biblioteca</label>
                                         <input type="text" name="location" id="location"
-                                            class="block w-full rounded-lg border-blue-200 focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2"
-                                            placeholder="Ej: Estante A, Fila 3" value="{{ old('location') }}">
+                                            class="block w-full rounded-lg border-blue-200 focus:ring-blue-500 focus:border-blue-500 py-2 px-3"
+                                            placeholder="Ej: Estante A, Fila 3"
+                                            value="{{ old('location', 'Estante A, Fila 1') }}">
                                     </div>
                                 </div>
                             </div>
@@ -147,25 +149,14 @@
                         <div id="digital_fields" class="hidden transform transition-all duration-300 ease-in-out">
                             <div class="bg-green-50 rounded-xl p-6 border border-green-100 space-y-4">
                                 <h3 class="font-bold text-green-900 flex items-center gap-2">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
-                                        </path>
-                                    </svg>
-                                    Detalles del Material Digital
+                                    💻 Detalles del Material Digital
                                 </h3>
                                 <div>
                                     <label for="url" class="block text-sm font-medium text-green-800 mb-1">URL del
                                         Documento</label>
-                                    <div class="mt-1 flex rounded-md shadow-sm">
-                                        <span
-                                            class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-green-200 bg-green-100 text-green-600 sm:text-sm">
-                                            https://
-                                        </span>
-                                        <input type="url" name="url" id="url"
-                                            class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md focus:ring-green-500 focus:border-green-500 sm:text-sm border-green-200"
-                                            placeholder="ejemplo.com/documento.pdf" value="{{ old('url') }}">
-                                    </div>
+                                    <input type="url" name="url" id="url"
+                                        class="block w-full rounded-lg border-green-200 focus:ring-green-500 focus:border-green-500 py-2 px-3"
+                                        placeholder="https://ejemplo.com/documento.pdf" value="{{ old('url') }}">
                                     <p class="mt-1 text-xs text-green-600">Ingrese el enlace directo al recurso (PDF, Drive,
                                         Web).</p>
                                 </div>
@@ -174,21 +165,19 @@
 
                         <!-- Descripción -->
                         <div>
-                            <label for="description" class="block text-sm font-semibold text-gray-700 mb-1">Descripción /
+                            <label for="description" class="block text-sm font-semibold text-gray-700 mb-1">📝 Descripción /
                                 Resumen</label>
-                            <div class="mt-1">
-                                <textarea name="description" id="description" rows="4"
-                                    class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-lg"
-                                    placeholder="Breve descripción del contenido del material...">{{ old('description') }}</textarea>
-                            </div>
+                            <textarea name="description" id="description" rows="4"
+                                class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full border-gray-300 rounded-xl px-4 py-2"
+                                placeholder="Breve descripción del contenido del material...">{{ old('description') }}</textarea>
                         </div>
 
                         <!-- Palabras Clave -->
                         <div>
-                            <label for="keywords" class="block text-sm font-semibold text-gray-700 mb-1">Palabras
+                            <label for="keywords" class="block text-sm font-semibold text-gray-700 mb-1">🏷️ Palabras
                                 Clave</label>
                             <input type="text" name="keywords" id="keywords"
-                                class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-lg py-2.5 px-3"
+                                class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full border-gray-300 rounded-xl py-2.5 px-4"
                                 placeholder="Ej: programación, java, backend (separadas por comas)"
                                 value="{{ old('keywords') }}">
                         </div>
@@ -196,17 +185,12 @@
                         <!-- Botones de Acción -->
                         <div class="pt-6 border-t border-gray-100 flex items-center justify-end gap-3">
                             <a href="{{ route('materials.index') }}"
-                                class="bg-white py-2.5 px-5 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition">
+                                class="bg-white py-2.5 px-5 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition">
                                 Cancelar
                             </a>
                             <button type="submit"
-                                class="inline-flex justify-center py-2.5 px-5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition transform hover:-translate-y-0.5">
-                                <svg class="w-5 h-5 mr-2 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4">
-                                    </path>
-                                </svg>
-                                Guardar Material
+                                class="inline-flex justify-center py-2.5 px-5 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition">
+                                💾 Guardar Material
                             </button>
                         </div>
                     </form>
@@ -226,9 +210,6 @@
                 digitalFields.classList.add('hidden');
             } else if (type === 'digital') {
                 physicalFields.classList.add('hidden');
-                digitalFields.classList.remove('hidden');
-            } else if (type === 'hibrido') {
-                physicalFields.classList.remove('hidden');
                 digitalFields.classList.remove('hidden');
             } else {
                 physicalFields.classList.add('hidden');

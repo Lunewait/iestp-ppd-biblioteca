@@ -27,79 +27,47 @@ class LoansList extends Component
         $this->resetPage();
     }
 
-    public function returnLoan($loanId)
-    {
-        $loan = Prestamo::findOrFail($loanId);
-        $this->authorize('return_loan');
-
-        if ($loan->status !== 'activo') {
-            session()->flash('error', 'Este préstamo no está activo');
-            return;
-        }
-
-        $loan->update([
-            'fecha_devolucion_actual' => now(),
-            'status' => 'devuelto',
-        ]);
-
-        if ($loan->material->materialFisico) {
-            $loan->material->materialFisico->increment('available');
-        }
-
-        if ($loan->isOverdue()) {
-            $daysLate = abs(now()->diffInDays($loan->fecha_devolucion_esperada));
-            $fineAmount = $daysLate * 1.50;
-
-            \App\Models\Multa::create([
-                'prestamo_id' => $loan->id,
-                'user_id' => $loan->user_id,
-                'monto' => $fineAmount,
-                'razon' => "Retraso en devolución de material ({$daysLate} días)",
-                'status' => 'pendiente',
-                'registrado_por' => auth()->id(),
-            ]);
-        }
-
-        session()->flash('success', 'Préstamo devuelto exitosamente');
-    }
-
-
-
     public function render()
     {
         $query = Prestamo::query();
 
-        // Students only see their own loans
+        // Different behavior for students vs admin
         if (auth()->user()?->hasRole('Estudiante')) {
-            $query->where('user_id', auth()->id());
+            // Students see their OWN loan history (collected -> returned)
+            $query->where('user_id', auth()->id())
+                ->whereIn('approval_status', ['collected', 'returned'])
+                ->whereIn('status', ['activo', 'devuelto']);
+        } else {
+            // Admin/Workers see ALL returned loans (history)
+            // For active loan management, they use loan-approvals page
         }
 
         if ($this->search) {
-            $query->whereHas('usuario', function ($q) {
-                $q->where('name', 'like', "%{$this->search}%");
-            })->orWhereHas('material', function ($q) {
-                $q->where('title', 'like', "%{$this->search}%");
+            $query->where(function ($q) {
+                $q->whereHas('usuario', function ($subQ) {
+                    $subQ->where('name', 'like', "%{$this->search}%");
+                })->orWhereHas('material', function ($subQ) {
+                    $subQ->where('title', 'like', "%{$this->search}%");
+                });
             });
         }
 
         if ($this->filterStatus !== 'all') {
-            if ($this->filterStatus === 'vencido') {
-                $query->where('status', 'activo')
+            if ($this->filterStatus === 'activo') {
+                $query->where('approval_status', 'collected')
+                    ->where('status', 'activo');
+            } elseif ($this->filterStatus === 'devuelto') {
+                $query->where('status', 'devuelto');
+            } elseif ($this->filterStatus === 'vencido') {
+                $query->where('approval_status', 'collected')
+                    ->where('status', 'activo')
                     ->where('fecha_devolucion_esperada', '<', now());
-            } else {
-                $query->where('status', $this->filterStatus);
-            }
-        } else {
-            // Por defecto, para administradores/trabajadores, no mostrar el historial (devueltos)
-            // a menos que se filtre explícitamente.
-            if (!auth()->user()?->hasRole('Estudiante')) {
-                $query->where('status', '!=', 'devuelto');
             }
         }
 
         $query->orderBy($this->sortBy, 'desc');
 
-        $loans = $query->with(['usuario', 'material', 'registradoPor'])
+        $loans = $query->with(['usuario', 'material', 'registradoPor', 'multas'])
             ->paginate(10);
 
         return view('livewire.loans-list', [
@@ -107,3 +75,4 @@ class LoansList extends Component
         ]);
     }
 }
+

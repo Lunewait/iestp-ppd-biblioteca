@@ -144,8 +144,19 @@ class FineController extends Controller
             'fecha_pago' => now(),
         ]);
 
+        // Verificar si el usuario tiene otras multas pendientes
+        $user = User::find($fine->user_id);
+        $pendingFines = Multa::where('user_id', $fine->user_id)
+            ->where('status', 'pendiente')
+            ->count();
+
+        // Si no tiene más multas pendientes, desbloquear
+        if ($pendingFines === 0 && $user->blocked_for_loans) {
+            $user->unblockLoans();
+        }
+
         return redirect()->route('fines.show', $fine)
-            ->with('success', 'Multa marcada como pagada');
+            ->with('success', 'Multa marcada como pagada' . ($pendingFines === 0 ? '. Usuario desbloqueado.' : ''));
     }
 
     /**
@@ -160,8 +171,19 @@ class FineController extends Controller
             'fecha_condonacion' => now(),
         ]);
 
+        // Verificar si el usuario tiene otras multas pendientes
+        $user = User::find($fine->user_id);
+        $pendingFines = Multa::where('user_id', $fine->user_id)
+            ->where('status', 'pendiente')
+            ->count();
+
+        // Si no tiene más multas pendientes, desbloquear
+        if ($pendingFines === 0 && $user->blocked_for_loans) {
+            $user->unblockLoans();
+        }
+
         return redirect()->route('fines.show', $fine)
-            ->with('success', 'Multa condonada exitosamente');
+            ->with('success', 'Multa condonada' . ($pendingFines === 0 ? '. Usuario desbloqueado.' : ''));
     }
 
     /**

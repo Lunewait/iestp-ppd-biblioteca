@@ -71,28 +71,28 @@ class LoanController extends Controller
 
         $material = Material::find($validated['material_id']);
 
-        // Check if material is available
+        // Check if material is available (tiene stock)
         if (!$material->isAvailable()) {
-            return back()->with('error', 'Material no disponible para préstamo');
+            return back()->with('error', 'Material no disponible para préstamo (sin stock)');
         }
 
         // Verificar límite de 3 solicitudes activas por usuario
         $activeLoanCount = Prestamo::getActiveRequestsCount($validated['user_id']);
-
         $maxLoans = config('library.max_active_loans_per_user', 3);
-        
+
         if ($activeLoanCount >= $maxLoans) {
             return back()->with('error', "El usuario alcanzó el límite permitido de solicitudes (máximo {$maxLoans})");
         }
 
-        // Verificar que el material no esté ya prestado activamente
-        $existingLoan = Prestamo::where('material_id', $validated['material_id'])
+        // Verificar que EL USUARIO no tenga ya este material prestado
+        $existingLoan = Prestamo::where('user_id', $validated['user_id'])
+            ->where('material_id', $validated['material_id'])
             ->where('status', 'activo')
-            ->whereIn('approval_status', ['pending', 'approved'])
+            ->whereIn('approval_status', ['pending', 'approved', 'collected'])
             ->exists();
 
         if ($existingLoan) {
-            return back()->with('error', 'Este libro ya está reservado o prestado');
+            return back()->with('error', 'Este usuario ya tiene un préstamo activo de este material');
         }
 
         // Check if user has unpaid fines
@@ -108,12 +108,15 @@ class LoanController extends Controller
             return back()->with('error', "Usuario tiene multas pendientes por S/. {$unpaidFines} y ha sido bloqueado.");
         }
 
+        // Cuando el admin crea el préstamo directamente, se marca como entregado
         $loan = Prestamo::create([
             'user_id' => $validated['user_id'],
             'material_id' => $validated['material_id'],
             'fecha_prestamo' => now(),
+            'fecha_recogida' => now(), // Ya se entregó
             'fecha_devolucion_esperada' => $validated['fecha_devolucion_esperada'],
             'status' => 'activo',
+            'approval_status' => 'collected', // Ya está en manos del estudiante
             'registrado_por' => auth()->id(),
         ]);
 
@@ -122,8 +125,8 @@ class LoanController extends Controller
             $material->materialFisico->decrement('available');
         }
 
-        return redirect()->route('loans.show', $loan)
-            ->with('success', 'Préstamo registrado exitosamente');
+        return redirect()->route('loan-approvals.index')
+            ->with('success', 'Préstamo asignado exitosamente a ' . $user->name);
     }
 
     /**
@@ -198,5 +201,79 @@ class LoanController extends Controller
         $this->authorize('export_loans');
 
         return Excel::download(new LoansExport, 'prestamos_' . date('Y-m-d') . '.xlsx');
+    }
+
+    /**
+     * Deliver a book to the student (Admin action).
+     * This starts the 7-day loan period.
+     */
+    public function deliver(Prestamo $loan)
+    {
+        $this->authorize('manage_loans');
+
+        // Verify the loan is approved and waiting for collection
+        if ($loan->approval_status !== 'approved' || $loan->status !== 'pendiente_recogida') {
+            return back()->with('error', 'Este préstamo no está pendiente de entrega.');
+        }
+
+        $loanDays = config('library.default_loan_days', 7);
+
+        $loan->update([
+            'approval_status' => 'collected',
+            'status' => 'activo',
+            'fecha_recogida' => now(),
+            'fecha_devolucion_esperada' => now()->addDays($loanDays),
+        ]);
+
+        return back()->with('success', '¡Libro entregado! El préstamo de ' . $loanDays . ' días ha comenzado.');
+    }
+
+    /**
+     * Receive a returned book from the student (Admin action).
+     * Generates fine automatically if overdue.
+     */
+    public function receive(Prestamo $loan)
+    {
+        $this->authorize('manage_loans');
+
+        // Verify the loan is active
+        if ($loan->status !== 'activo' || $loan->approval_status !== 'collected') {
+            return back()->with('error', 'Este préstamo no está activo para recibir devolución.');
+        }
+
+        $loan->update([
+            'fecha_devolucion_actual' => now(),
+            'status' => 'devuelto',
+            'approval_status' => 'returned',
+        ]);
+
+        // Increase available stock
+        if ($loan->material->materialFisico) {
+            $loan->material->materialFisico->increment('available');
+        }
+
+        // Check if overdue and create fine automatically
+        if ($loan->fecha_devolucion_esperada < now()) {
+            $daysLate = now()->diffInDays($loan->fecha_devolucion_esperada);
+            $fineRate = config('library.daily_fine_rate', 1.50);
+            $fineAmount = $daysLate * $fineRate;
+
+            Multa::create([
+                'prestamo_id' => $loan->id,
+                'user_id' => $loan->user_id,
+                'monto' => $fineAmount,
+                'razon' => "Devolución tardía ({$daysLate} días de retraso)",
+                'status' => 'pendiente',
+                'registrado_por' => auth()->id(),
+            ]);
+
+            // Auto-block user due to fine
+            $user = User::find($loan->user_id);
+            $user->blockLoans("Multa generada por devolución tardía de S/. " . number_format($fineAmount, 2));
+
+            return back()->with('warning', 'Libro recibido. Se generó una multa de S/. ' . number_format($fineAmount, 2) . ' por ' . $daysLate . ' días de retraso. El usuario ha sido bloqueado.');
+        }
+
+        return back()->with('success', '¡Libro recibido exitosamente! Devolución a tiempo.');
     }
 }

@@ -56,7 +56,6 @@
                     <option value="all">Todos los tipos</option>
                     <option value="fisico">📚 Libros Físicos</option>
                     <option value="digital">💻 Digitales</option>
-                    <option value="hibrido">🔄 Híbridos</option>
                 </select>
             </div>
             <div class="md:col-span-3">
@@ -80,15 +79,10 @@
                     @if($material->type === 'digital')
                         <div
                             class="absolute inset-0 bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center">
-                            <span class="text-white text-5xl">PDF</span>
-                        </div>
-                    @elseif($material->type === 'hibrido')
-                        <div
-                            class="absolute inset-0 bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center">
-                            <span class="text-white text-5xl">🔄</span>
+                            <span class="text-white text-5xl">💻</span>
                         </div>
                     @else
-                        <!-- Random color gradient based on ID for visual variety -->
+                        <!-- Libro físico -->
                         <div
                             class="absolute inset-0 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
                             <span

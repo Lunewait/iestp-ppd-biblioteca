@@ -3,6 +3,7 @@
 use App\Http\Controllers\FineController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\MaterialController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RepositoryController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\UserController;
@@ -25,6 +26,9 @@ Route::middleware(['auth'])->group(function () {
         }
         return view('dashboard');
     })->name('dashboard');
+
+    // Reportes (Solo Admin)
+    Route::get('reports', [ReportController::class, 'index'])->name('reports.index')->middleware('role:Admin');
 
     // Materials Catalog
     Route::get('materials', [MaterialController::class, 'index'])->name('materials.index')->middleware('permission:view_materials');
@@ -52,11 +56,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('loans/{loan}', [LoanController::class, 'show'])->name('loans.show')->middleware('permission:view_loans');
     Route::get('loans/{loan}/return', [LoanController::class, 'returnForm'])->name('loans.return-form')->middleware('permission:return_loan');
     Route::post('loans/{loan}/return', [LoanController::class, 'return'])->name('loans.return')->middleware('permission:return_loan');
+    Route::post('loans/{loan}/deliver', [LoanController::class, 'deliver'])->name('loans.deliver')->middleware('permission:manage_loans');
+    Route::post('loans/{loan}/receive', [LoanController::class, 'receive'])->name('loans.receive')->middleware('permission:manage_loans');
 
     // Loan Requests & Approvals
     Route::get('loan-requests', function () {
         return view('loan-requests');
-    })->name('loan-requests.index')->middleware('role:Estudiante');
+    })->name('loan-requests.index')->middleware('student.restrictions');
 
     Route::get('loan-approvals', function () {
         return view('loan-approvals');

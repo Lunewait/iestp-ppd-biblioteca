@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Gestión de Préstamos')
+
 @section('content')
-    <livewire:loan-approval-list />
+    <livewire:admin-loan-management />
 @endsection

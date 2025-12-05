@@ -102,6 +102,10 @@ class Prestamo extends Model
             return false;
         }
 
+        if (!$this->fecha_devolucion_esperada) {
+            return false;
+        }
+
         return now()->greaterThan($this->fecha_devolucion_esperada);
     }
 
@@ -128,6 +132,9 @@ class Prestamo extends Model
      */
     public function getDaysUntilDue()
     {
+        if (!$this->fecha_devolucion_esperada) {
+            return null;
+        }
         return now()->diffInDays($this->fecha_devolucion_esperada, false);
     }
 
@@ -161,10 +168,10 @@ class Prestamo extends Model
     public static function getActiveLoansByUser($userId)
     {
         return self::where('user_id', $userId)
-                   ->where('status', 'activo')
-                   ->with('material')
-                   ->orderBy('fecha_devolucion_esperada')
-                   ->get();
+            ->where('status', 'activo')
+            ->with('material')
+            ->orderBy('fecha_devolucion_esperada')
+            ->get();
     }
 
     /**
@@ -173,10 +180,10 @@ class Prestamo extends Model
     public static function getOverdueLoans()
     {
         return self::where('status', 'activo')
-                   ->where('fecha_devolucion_esperada', '<', now())
-                   ->with(['usuario', 'material'])
-                   ->orderBy('fecha_devolucion_esperada')
-                   ->get();
+            ->where('fecha_devolucion_esperada', '<', now())
+            ->with(['usuario', 'material'])
+            ->orderBy('fecha_devolucion_esperada')
+            ->get();
     }
 
     /**
@@ -185,10 +192,10 @@ class Prestamo extends Model
     public static function getExpiringsoon($days = 3)
     {
         return self::where('status', 'activo')
-                   ->whereBetween('fecha_devolucion_esperada', [now(), now()->addDays($days)])
-                   ->with(['usuario', 'material'])
-                   ->orderBy('fecha_devolucion_esperada')
-                   ->get();
+            ->whereBetween('fecha_devolucion_esperada', [now(), now()->addDays($days)])
+            ->with(['usuario', 'material'])
+            ->orderBy('fecha_devolucion_esperada')
+            ->get();
     }
 
     /**
@@ -196,7 +203,7 @@ class Prestamo extends Model
      */
     public function isWaitingCollection()
     {
-        return $this->approval_status === 'approved' 
+        return $this->approval_status === 'approved'
             && $this->fecha_recogida === null;
     }
 
@@ -217,7 +224,7 @@ class Prestamo extends Model
      */
     public function isActive()
     {
-        return $this->approval_status === 'collected' 
+        return $this->approval_status === 'collected'
             && $this->status === 'activo';
     }
 
@@ -228,8 +235,8 @@ class Prestamo extends Model
     public static function getActiveRequestsCount($userId)
     {
         return self::where('user_id', $userId)
-                   ->whereIn('approval_status', ['pending', 'approved', 'collected'])
-                   ->count();
+            ->whereIn('approval_status', ['pending', 'approved', 'collected'])
+            ->count();
     }
 
     /**
@@ -254,7 +261,7 @@ class Prestamo extends Model
     public function markAsCollected()
     {
         $loanDays = config('library.default_loan_days', 7);
-        
+
         $this->update([
             'approval_status' => 'collected',
             'status' => 'activo',

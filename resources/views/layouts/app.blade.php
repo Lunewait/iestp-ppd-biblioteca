@@ -88,6 +88,13 @@
                                 <i class="fas fa-users w-5 text-center"></i> Usuarios
                             </a>
                         @endcan
+
+                        @if(auth()->user()->hasRole('Admin'))
+                            <a href="{{ route('reports.index') }}"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 {{ request()->routeIs('reports.*') ? 'bg-blue-600 text-white' : 'text-slate-300' }} transition-colors">
+                                <i class="fas fa-chart-bar w-5 text-center"></i> Reportes
+                            </a>
+                        @endif
                     </nav>
 
                     <!-- Footer Actions -->
@@ -114,7 +121,7 @@
                                 <i class="fas fa-bell"></i>
                             </button>
                             <div class="h-8 w-px bg-gray-200"></div>
-                            <span class="text-sm text-gray-500">{{ now()->format('d M, Y') }}</span>
+                            <span class="text-sm text-gray-500">{{ now()->format('d/m/Y') }}</span>
                         </div>
                     </header>
                     @php
@@ -267,6 +274,48 @@
                         <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-sm">
                             <p class="text-red-800 font-medium">{{ session('error') }}</p>
                         </div>
+                    @endif
+
+                    {{-- Alertas para estudiantes con restricciones --}}
+                    @if(auth()->user()->hasRole('Estudiante'))
+                        @php
+                            $overdueLoans = \App\Models\Prestamo::where('user_id', auth()->id())
+                                ->where('status', 'activo')
+                                ->where('approval_status', 'collected')
+                                ->where('fecha_devolucion_esperada', '<', now())
+                                ->count();
+
+                            $pendingFines = \App\Models\Multa::where('user_id', auth()->id())
+                                ->where('status', 'pendiente')
+                                ->sum('monto');
+                        @endphp
+
+                        @if($overdueLoans > 0)
+                            <div class="mb-6 p-4 bg-red-100 border-l-4 border-red-600 rounded-r-lg shadow-sm">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-2xl">⚠️</span>
+                                    <div>
+                                        <h4 class="font-bold text-red-800">¡Préstamo Vencido!</h4>
+                                        <p class="text-red-700">Tienes {{ $overdueLoans }} préstamo(s) vencido(s). <strong>Devuelve los
+                                                libros a la biblioteca inmediatamente.</strong></p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        @if($pendingFines > 0)
+                            <div class="mb-6 p-4 bg-amber-100 border-l-4 border-amber-600 rounded-r-lg shadow-sm">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-2xl">💰</span>
+                                    <div>
+                                        <h4 class="font-bold text-amber-800">Multas Pendientes</h4>
+                                        <p class="text-amber-700">Tienes S/. {{ number_format($pendingFines, 2) }} en multas.
+                                            <strong>Acércate a la biblioteca para pagar.</strong>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                     @endif
 
                     @yield('content')

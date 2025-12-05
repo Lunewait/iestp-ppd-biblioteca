@@ -38,22 +38,43 @@
                             <dd class="text-gray-800">{{ $loan->id }}</dd>
                         </div>
                         <div>
-                            <dt class="text-gray-600 font-bold">Fecha de Préstamo:</dt>
-                            <dd class="text-gray-800">{{ $loan->created_at->format('d M, Y') }}</dd>
+                            <dt class="text-gray-600 font-bold">Fecha de Solicitud:</dt>
+                            <dd class="text-gray-800">{{ $loan->fecha_prestamo?->format('d/m/Y H:i') ?? $loan->created_at->format('d/m/Y H:i') }}</dd>
                         </div>
+                        @if($loan->fecha_limite_recogida && !$loan->fecha_recogida)
+                        <div>
+                            <dt class="text-gray-600 font-bold">Límite para Recoger:</dt>
+                            <dd class="text-gray-800 {{ $loan->fecha_limite_recogida->isPast() ? 'text-red-600' : 'text-green-600' }}">
+                                {{ $loan->fecha_limite_recogida->format('d/m/Y H:i') }}
+                                @if($loan->fecha_limite_recogida->isPast())
+                                    <span class="font-bold ml-2">(EXPIRADO)</span>
+                                @else
+                                    ({{ $loan->fecha_limite_recogida->diffForHumans() }})
+                                @endif
+                            </dd>
+                        </div>
+                        @endif
+                        @if($loan->fecha_recogida)
+                        <div>
+                            <dt class="text-gray-600 font-bold">Fecha de Recogida:</dt>
+                            <dd class="text-gray-800">{{ $loan->fecha_recogida->format('d/m/Y H:i') }}</dd>
+                        </div>
+                        @endif
+                        @if($loan->fecha_devolucion_esperada)
                         <div>
                             <dt class="text-gray-600 font-bold">Fecha de Vencimiento:</dt>
                             <dd class="text-gray-800">
-                                {{ $loan->fecha_devolucion_esperada->format('d M, Y') }}
+                                {{ $loan->fecha_devolucion_esperada->format('d/m/Y') }}
                                 @if ($loan->isOverdue())
                                     <span class="text-red-600 font-bold ml-2">(VENCIDO)</span>
                                 @endif
                             </dd>
                         </div>
-                        @if ($loan->fecha_devolucion)
+                        @endif
+                        @if ($loan->fecha_devolucion_actual)
                             <div>
                                 <dt class="text-gray-600 font-bold">Fecha de Devolución:</dt>
-                                <dd class="text-gray-800">{{ $loan->fecha_devolucion->format('d M, Y') }}</dd>
+                                <dd class="text-gray-800">{{ $loan->fecha_devolucion_actual->format('d/m/Y H:i') }}</dd>
                             </div>
                         @endif
                     </dl>

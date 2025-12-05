@@ -74,50 +74,71 @@ class ReservationController extends Controller
     {
         $this->authorize('create_reservation');
 
+        $user = auth()->user();
+        $maxLoans = config('library.max_active_loans_per_user', 3);
+
         // Check if user is blocked from requesting loans
-        if (auth()->user()->blocked_for_loans) {
-            return back()->with('error', 'No puedes solicitar préstamos. Motivo: ' . (auth()->user()->blocked_reason ?? 'Cuenta bloqueada. Contacta con la biblioteca.'));
+        if ($user->blocked_for_loans) {
+            return back()->with('error', 'No puedes solicitar préstamos. Motivo: ' . ($user->blocked_reason ?? 'Cuenta bloqueada. Contacta con la biblioteca.'));
+        }
+
+        // Check if user has pending fines
+        $pendingFines = $user->multas()->where('status', 'pendiente')->sum('monto');
+        if ($pendingFines > 0) {
+            return back()->with('error', 'Tienes multas pendientes por S/. ' . number_format($pendingFines, 2) . '. Debes pagarlas antes de solicitar préstamos.');
+        }
+
+        // Check loan limit (active loans + pending requests)
+        $activeLoansCount = Prestamo::where('user_id', $user->id)
+            ->whereIn('approval_status', ['pending', 'approved', 'collected'])
+            ->count();
+
+        if ($activeLoansCount >= $maxLoans) {
+            return back()->with('error', 'Has alcanzado el máximo de ' . $maxLoans . ' préstamos permitidos. Devuelve algún libro para poder solicitar más.');
         }
 
         $validated = $request->validate([
             'material_id' => 'required|exists:materials,id',
-            'fecha_reserva_esperada' => 'required|date|after:today',
         ]);
 
         $material = Material::find($validated['material_id']);
 
+        // Check if material is available
+        if (!$material->isAvailable()) {
+            return back()->with('error', 'Este material no está disponible actualmente.');
+        }
+
         // Check if user has an active loan for this material
-        $activeLoan = Prestamo::where('user_id', auth()->id())
+        $activeLoan = Prestamo::where('user_id', $user->id)
             ->where('material_id', $material->id)
-            ->where('status', 'activo')
+            ->whereIn('approval_status', ['pending', 'approved', 'collected'])
             ->first();
 
         if ($activeLoan) {
-            return back()->with('error', 'No puedes solicitar este libro porque ya tienes un préstamo activo del mismo. Debes devolverlo primero.');
+            return back()->with('error', 'Ya tienes una solicitud o préstamo activo de este material.');
         }
 
-        // Check if user already has a reservation for this material
-        $existingReservation = Reserva::where('user_id', auth()->id())
-            ->where('material_id', $material->id)
-            ->whereIn('status', ['pendiente', 'aprobada'])
-            ->first();
-
-        if ($existingReservation) {
-            return back()->with('error', 'Ya tienes una solicitud activa para este material.');
-        }
-
-        Reserva::create([
-            'user_id' => auth()->id(),
+        // Create the loan request - AUTO APPROVED (no pending fines)
+        $loan = Prestamo::create([
+            'user_id' => $user->id,
             'material_id' => $material->id,
-            'fecha_reserva' => now(),
-            'status' => 'pendiente',
-            'posicion_cola' => Reserva::where('material_id', $material->id)
-                ->whereIn('status', ['pendiente', 'aprobada'])
-                ->count() + 1,
+            'fecha_prestamo' => now(),
+            'fecha_limite_recogida' => now()->addDays(2), // 2 días para recoger
+            'status' => 'pendiente_recogida',
+            'approval_status' => 'approved', // Auto-approved
+            'approved_by' => null, // System auto-approval
+            'approval_date' => now(),
+            'registrado_por' => $user->id,
         ]);
 
-        return redirect()->route('reservations.index')
-            ->with('success', 'Solicitud de préstamo creada exitosamente. Recibirás una notificación cuando sea aprobada.');
+        // Decrease available stock (reserve the book)
+        if ($material->materialFisico) {
+            $material->materialFisico->decrement('available');
+        }
+
+        return redirect()->route('loans.index')
+            ->with('success', '¡Solicitud aprobada automáticamente! Tienes 2 días para acercarte a la biblioteca a recoger tu libro.')
+            ->with('auto_approved', true);
     }
 
     /**
