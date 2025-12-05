@@ -13,6 +13,22 @@ use Carbon\Carbon;
 
 class ReportController extends Controller
 {
+    /**
+     * Obtiene la función SQL para formatear fecha según el driver de BD
+     */
+    private function getDateFormatSQL($column, $format)
+    {
+        $driver = DB::getDriverName();
+
+        if ($driver === 'pgsql') {
+            // PostgreSQL usa TO_CHAR
+            return "TO_CHAR({$column}, 'YYYY-MM')";
+        } else {
+            // MySQL usa DATE_FORMAT
+            return "DATE_FORMAT({$column}, '%Y-%m')";
+        }
+    }
+
     public function index(Request $request)
     {
         // Solo Admin puede ver reportes
@@ -45,9 +61,11 @@ class ReportController extends Controller
             'pending_documents' => RepositorioDocumento::where('estado', 'pendiente')->count(),
         ];
 
-        // ===== PRÉSTAMOS POR MES (últimos 6 meses) =====
+        // ===== PRÉSTAMOS POR MES (últimos 6 meses) - Compatible MySQL/PostgreSQL =====
+        $dateFormatSQL = $this->getDateFormatSQL('created_at', 'YYYY-MM');
+
         $loansByMonth = Prestamo::select(
-            DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
+            DB::raw("{$dateFormatSQL} as month"),
             DB::raw('COUNT(*) as total')
         )
             ->where('created_at', '>=', now()->subMonths(6))
@@ -64,7 +82,7 @@ class ReportController extends Controller
             $monthsData[$month] = $loansByMonth[$month] ?? 0;
         }
 
-        // ===== MATERIALES MÁS PRESTADOS (usando subconsulta) =====
+        // ===== MATERIALES MÁS PRESTADOS (usando colecciones) =====
         $loanCounts = Prestamo::select('material_id', DB::raw('COUNT(*) as loan_count'))
             ->groupBy('material_id')
             ->pluck('loan_count', 'material_id')
@@ -75,7 +93,7 @@ class ReportController extends Controller
             return $material;
         })->sortByDesc('loan_count')->take(10)->values();
 
-        // ===== USUARIOS CON MÁS PRÉSTAMOS (usando subconsulta) =====
+        // ===== USUARIOS CON MÁS PRÉSTAMOS (usando colecciones) =====
         $userLoanCounts = Prestamo::select('user_id', DB::raw('COUNT(*) as loan_count'))
             ->groupBy('user_id')
             ->pluck('loan_count', 'user_id')
@@ -103,9 +121,9 @@ class ReportController extends Controller
             'cancelados' => Prestamo::where('status', 'cancelado')->count(),
         ];
 
-        // ===== MULTAS POR MES =====
+        // ===== MULTAS POR MES - Compatible MySQL/PostgreSQL =====
         $finesByMonth = Multa::select(
-            DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
+            DB::raw("{$dateFormatSQL} as month"),
             DB::raw('SUM(monto) as total')
         )
             ->where('created_at', '>=', now()->subMonths(6))

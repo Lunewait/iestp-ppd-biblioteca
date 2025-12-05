@@ -1,0 +1,5 @@
+[www]
+root = /app/public
+
+[php]
+version = "8.2"
