@@ -1,55 +1,57 @@
+# Imagen base PHP con Apache
 FROM php:8.2-apache
 
-# Instalar dependencias del sistema
+# Instalar extensiones PHP necesarias
 RUN apt-get update && apt-get install -y \
     git \
     curl \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
+    libpq-dev \
     zip \
     unzip \
-    libpq-dev \
     nodejs \
-    npm
+    npm \
+    && docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Limpiar caché
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Instalar extensiones de PHP
-RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd
-
-# Habilitar mod_rewrite de Apache
+# Habilitar mod_rewrite para Laravel
 RUN a2enmod rewrite
 
-# Establecer el directorio de trabajo
-WORKDIR /var/www/html
-
-# Instalar Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Copiar archivos del proyecto
-COPY . .
-
-# Configurar Apache DocumentRoot a /public
+# Configurar DocumentRoot de Apache
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Instalar dependencias de PHP con límite de memoria aumentado
-ENV COMPOSER_MEMORY_LIMIT=-1
-RUN composer install --no-interaction --optimize-autoloader --no-dev --no-scripts --ignore-platform-reqs
+# Configurar AllowOverride para .htaccess
+RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+
+# Instalar Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Directorio de trabajo
+WORKDIR /var/www/html
+
+# Copiar archivos del proyecto
+COPY . .
+
+# Instalar dependencias de PHP
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Instalar dependencias de Node y compilar assets
-RUN npm install
-RUN npm run build
+RUN npm install && npm run build
 
-# Dar permisos a la carpeta storage y bootstrap/cache
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+# Permisos
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage \
+    && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Exponer el puerto 80
+# Script de inicio
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 EXPOSE 80
 
-# Comando de inicio
-CMD sh -c "php artisan config:clear && php artisan migrate:fresh --force --seed && apache2-foreground"
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["apache2-foreground"]

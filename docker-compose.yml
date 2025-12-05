@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: biblioteca-app
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      - APP_NAME=Biblioteca Pedro P. Díaz
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://localhost:8080
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=biblioteca
+      - DB_USERNAME=biblioteca_user
+      - DB_PASSWORD=biblioteca_password
+      - SESSION_DRIVER=cookie
+      - CACHE_DRIVER=file
+    depends_on:
+      - db
+    volumes:
+      - storage:/var/www/html/storage
+
+  db:
+    image: postgres:15-alpine
+    container_name: biblioteca-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=biblioteca
+      - POSTGRES_USER=biblioteca_user
+      - POSTGRES_PASSWORD=biblioteca_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
+  storage:
